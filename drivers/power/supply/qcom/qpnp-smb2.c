@@ -1749,6 +1749,7 @@ static int smb2_init_hw(struct smb2 *chip)
 	struct smb_charger *chg = &chip->chg;
 	int rc;
 	u8 stat, val;
+	u8 aicl_mask, aicl_options = 0;
 
 	if (chip->dt.no_battery)
 		chg->fake_capacity = 50;
@@ -1895,9 +1896,14 @@ static int smb2_init_hw(struct smb2 *chip)
 	 * AICL configuration:
 	 * start from min and AICL ADC disable
 	 */
+	aicl_mask = USBIN_AICL_START_AT_MAX_BIT | USBIN_AICL_ADC_EN_BIT;
+#ifdef CONFIG_MACH_XIAOMI_WAYNE
+	/* Retry safe current discovery after a transient input collapse. */
+	aicl_mask |= USBIN_AICL_RERUN_EN_BIT;
+	aicl_options = USBIN_AICL_RERUN_EN_BIT;
+#endif
 	rc = smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,
-			USBIN_AICL_START_AT_MAX_BIT
-				| USBIN_AICL_ADC_EN_BIT, 0);
+			aicl_mask, aicl_options);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure AICL rc=%d\n", rc);
 		return rc;

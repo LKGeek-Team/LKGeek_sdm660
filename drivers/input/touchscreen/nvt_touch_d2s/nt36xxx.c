@@ -238,8 +238,7 @@ const uint16_t gesture_key_array[] = {
 };
 
 bool enable_gesture_mode = false;
-bool delay_gesture = false;
-bool suspend_state = false;
+static bool gesture_mode_active;
 #define WAKEUP_OFF 4
 #define WAKEUP_ON 5
 
@@ -247,20 +246,13 @@ int nvt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 {
 	if (type == EV_SYN && code == SYN_CONFIG)
 	{
-		if (suspend_state)
-		{
-		     if ((value != WAKEUP_OFF) || enable_gesture_mode)
-			{
-			delay_gesture = true;
-			}
-		}  
 		NVT_LOG("choose the gesture mode yes or not/n");
 		if(value == WAKEUP_OFF){
 			NVT_LOG("disable gesture mode/n");
-			enable_gesture_mode = false;
+			WRITE_ONCE(enable_gesture_mode, false);
 		}else if(value == WAKEUP_ON){
 			NVT_LOG("enable gesture mode/n");
-			enable_gesture_mode  = true;
+			WRITE_ONCE(enable_gesture_mode, true);
 		}
 	}
 	return 0;
@@ -270,7 +262,7 @@ int nvt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 static ssize_t double_tap_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%d\n", enable_gesture_mode);
+	return sprintf(buf, "%d\n", READ_ONCE(enable_gesture_mode));
 }
 
 static ssize_t double_tap_store(struct kobject *kobj,
@@ -283,7 +275,7 @@ static ssize_t double_tap_store(struct kobject *kobj,
 	if (rc)
 		return -EINVAL;
 
-	enable_gesture_mode = !!val;
+	WRITE_ONCE(enable_gesture_mode, !!val);
 	return count;
 }
 
@@ -1587,7 +1579,9 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	nvt_esd_check_enable(false);
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
-	if(enable_gesture_mode){
+	/* Resume must undo the mode actually programmed, not a newer request. */
+	gesture_mode_active = READ_ONCE(enable_gesture_mode);
+	if (gesture_mode_active) {
 
 		buf[0] = EVENT_MAP_HOST_CMD;
 		buf[1] = 0x13;
@@ -1628,7 +1622,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	input_sync(ts->input_dev);
 
 	msleep(50);
-	suspend_state = true;
 	mutex_unlock(&ts->lock);
 
 	NVT_LOG("end\n");
@@ -1657,16 +1650,12 @@ static int32_t nvt_ts_resume(struct device *dev)
 
 	nvt_bootloader_reset();
 	nvt_check_fw_reset_state(RESET_STATE_REK);
-	if (delay_gesture) {
-		enable_gesture_mode = !enable_gesture_mode;
-	}
-
-	if(!enable_gesture_mode) {
+	if (gesture_mode_active) {
+		disable_irq_wake(ts->client->irq);
+	} else {
 		enable_irq(ts->client->irq);
 	}
-	if (delay_gesture) {
-		enable_gesture_mode = !enable_gesture_mode;
-	}
+	gesture_mode_active = false;
 
 #if NVT_TOUCH_ESD_PROTECT
 	queue_delayed_work(nvt_esd_check_wq, &nvt_esd_check_work,
@@ -1676,8 +1665,6 @@ static int32_t nvt_ts_resume(struct device *dev)
 	bTouchIsAwake = 1;
 
 	mutex_unlock(&ts->lock);
-	suspend_state = false;
-	delay_gesture = false;
 	NVT_LOG("end\n");
 
 	return 0;
@@ -1694,10 +1681,11 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 
 	if (evdata && evdata->data && event == FB_EARLY_EVENT_BLANK) {
 		blank = evdata->data;
-		if (*blank == FB_BLANK_POWERDOWN) {
-		    if (ESD_TE_status == false) {
-				nvt_ts_suspend(&ts->client->dev);
-			}
+		/* ColorOS also locks into LP1/LP2, without a POWERDOWN event. */
+		if (*blank != FB_BLANK_UNBLANK && !ESD_TE_status) {
+			pr_info("NVT: display blank=%d, enter sleep/gesture mode\n",
+				*blank);
+			nvt_ts_suspend(&ts->client->dev);
 		}
 	} else if (evdata && evdata->data && event == FB_EVENT_BLANK) {
 		blank = evdata->data;
