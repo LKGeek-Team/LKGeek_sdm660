@@ -314,9 +314,6 @@ struct device_node *of_batterydata_get_best_profile(
 {
 	struct batt_ids batt_ids;
 	struct device_node *node, *best_node = NULL;
-#ifdef CONFIG_MACH_MI
-	struct device_node *generic_node = NULL;
-#endif
 	const char *battery_type = NULL;
 	int delta = 0, best_delta = 0, best_id_kohm = 0, id_range_pct,
 		i = 0, rc = 0, limit = 0;
@@ -339,7 +336,6 @@ struct device_node *of_batterydata_get_best_profile(
 	 * Find the battery data with a battery id resistor closest to this one
 	 */
 	for_each_child_of_node(batterydata_container_node, node) {
-#ifndef CONFIG_MACH_LONGCHEER
 		if (batt_type != NULL) {
 			rc = of_property_read_string(node, "qcom,battery-type",
 							&battery_type);
@@ -349,7 +345,6 @@ struct device_node *of_batterydata_get_best_profile(
 				break;
 			}
 		} else {
-#endif
 			rc = of_batterydata_read_batt_id_kohm(node,
 							"qcom,batt-id-kohm",
 							&batt_ids);
@@ -371,35 +366,20 @@ struct device_node *of_batterydata_get_best_profile(
 					best_id_kohm = batt_ids.kohm[i];
 				}
 			}
-#ifndef CONFIG_MACH_LONGCHEER
 		}
-#ifdef CONFIG_MACH_MI
-		rc = of_property_read_string(node, "qcom,battery-type",
-							&battery_type);
-		if (!rc && strcmp(battery_type, "itech_3000mah") == 0)
-			generic_node = node;
-#endif
-#endif
 	}
 
 	if (best_node == NULL) {
 #ifdef CONFIG_MACH_LONGCHEER
 		for_each_child_of_node(batterydata_container_node, node) {
-			rc = of_property_read_string(node, "qcom,battery-type",
-							&battery_type);
-			if (!rc && strcmp(battery_type, "unknown-default") ==
-					0) {
+			rc = of_property_read_string(node, "qcom,battery-type", &battery_type);
+			if (!rc && strcmp(battery_type,"unknown-default") == 0) {
 				best_node = node;
 				break;
 			}
 		}
 		if (best_node)
 			pr_info("Use unknown battery data\n");
-#elif defined(CONFIG_MACH_MI)
-		/* now that best_node is null, there is no need to
-		 * check whether generic node is null. */
-		best_node = generic_node;
-		pr_err("No battery data found, use generic one\n");
 #else
 		pr_err("No battery data found\n");
 #endif
