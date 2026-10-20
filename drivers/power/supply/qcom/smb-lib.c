@@ -3257,6 +3257,11 @@ static int __smblib_set_prop_pd_active(struct smb_charger *chg, bool pd_active)
 			smblib_err(chg, "Couldn't vote for USB ICL rc=%d\n",
 									rc);
 
+		/* PD now owns ICL; preserve USER_VOTER for user suspend only. */
+		rc = vote(chg->usb_icl_votable, LEGACY_HVDCP_VOTER, false, 0);
+		if (rc < 0)
+			smblib_err(chg, "Couldn't clear legacy HVDCP ICL rc=%d\n", rc);
+
 		/* since PD was found the cable must be non-legacy */
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, false, 0);
 
@@ -4252,6 +4257,10 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 	if (chg->pd_active)
 		return;
 
+	/* A protocol limit must not survive a change of charger type. */
+	if (pst != POWER_SUPPLY_TYPE_USB_HVDCP)
+		vote(chg->usb_icl_votable, LEGACY_HVDCP_VOTER, false, 0);
+
 	switch (pst) {
 	case POWER_SUPPLY_TYPE_USB:
 		/*
@@ -4271,15 +4280,9 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, false, 0);
 		break;
 	case POWER_SUPPLY_TYPE_USB_CDP:
-#if defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
-		vote(chg->usb_icl_votable, USER_VOTER, false, 0);
-#endif
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, CDP_CURRENT_UA);
 		break;
 	case POWER_SUPPLY_TYPE_USB_DCP:
-#if defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
-		vote(chg->usb_icl_votable, USER_VOTER, false, 0);
-#endif
 		typec_mode = smblib_get_prop_typec_mode(chg);
 		rp_ua = get_rp_based_dcp_current(chg, typec_mode);
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, rp_ua);
@@ -4290,9 +4293,6 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		 * if this is a SDP and appropriately set the current
 		 */
 #ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
-#if defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
-		vote(chg->usb_icl_votable, USER_VOTER, false, 0);
-#endif
 #if defined(CONFIG_MACH_XIAOMI_WHYRED)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 1000000);
 #elif defined(CONFIG_MACH_XIAOMI_TULIP)
@@ -4309,16 +4309,13 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 #if defined(CONFIG_MACH_XIAOMI_TULIP)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, HVDCP2_CURRENT_UA);
 #elif defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
-		vote(chg->usb_icl_votable, USER_VOTER, true, HVDCP2_CURRENT_UA);
+		vote(chg->usb_icl_votable, LEGACY_HVDCP_VOTER, true, HVDCP2_CURRENT_UA);
 #else
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 1500000);
 #endif
 		break;
 #endif
 	case POWER_SUPPLY_TYPE_USB_HVDCP_3:
-#if defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
-		vote(chg->usb_icl_votable, USER_VOTER, false, 0);
-#endif
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, HVDCP_CURRENT_UA);
 		break;
 	default:
@@ -4758,6 +4755,7 @@ static void smblib_handle_typec_removal(struct smb_charger *chg)
 	vote(chg->usb_icl_votable, OTG_VOTER, false, 0);
 	vote(chg->usb_icl_votable, CTM_VOTER, false, 0);
 	vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER, false, 0);
+	vote(chg->usb_icl_votable, LEGACY_HVDCP_VOTER, false, 0);
 
 	/* reset hvdcp voters */
 	vote(chg->hvdcp_disable_votable_indirect, VBUS_CC_SHORT_VOTER, true, 0);

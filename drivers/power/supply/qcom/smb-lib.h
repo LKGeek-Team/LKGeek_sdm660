@@ -23,6 +23,7 @@ enum print_reason {
 
 #define DEFAULT_VOTER			"DEFAULT_VOTER"
 #define USER_VOTER			"USER_VOTER"
+#define LEGACY_HVDCP_VOTER		"LEGACY_HVDCP_VOTER"
 #define PD_VOTER			"PD_VOTER"
 #define DCP_VOTER			"DCP_VOTER"
 #define QC_VOTER			"QC_VOTER"
