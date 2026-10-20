@@ -62,6 +62,10 @@ int main(void) {
  chg->pd_active=false;smblib_force_legacy_icl(chg,POWER_SUPPLY_TYPE_USB_HVDCP);assert(effective()==2000000);
  assert(!__smblib_set_prop_pd_active(chg,true));assert(!is_client_vote_enabled(&usb,LEGACY_HVDCP_VOTER));assert(effective()==500000);
  vote(&usb,PD_VOTER,true,3000000);assert(effective()==3000000);
+ vote(&usb,BOARD_ICL_VOTER,true,2900000);vote(&usb,PD_VOTER,true,5100000);assert(effective()==2900000);
+ vote(&usb,THERMAL_DAEMON_VOTER,true,1000000);assert(effective()==1000000);
+ vote(&usb,USER_VOTER,true,0);assert(effective()==0);vote(&usb,USER_VOTER,false,0);
+ vote(&usb,THERMAL_DAEMON_VOTER,false,0);assert(effective()==2900000);vote(&usb,BOARD_ICL_VOTER,false,0);
  chg->pd_active=false;smblib_force_legacy_icl(chg,POWER_SUPPLY_TYPE_USB_HVDCP);
  vote(&usb,USER_VOTER,true,0);reset_votes(chg);assert(!is_client_vote_enabled(&usb,LEGACY_HVDCP_VOTER));assert(is_client_vote_enabled(&usb,USER_VOTER));assert(effective()==0);
  return 0;

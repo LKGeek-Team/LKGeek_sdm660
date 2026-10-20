@@ -1767,6 +1767,20 @@ static int smb2_init_hw(struct smb2 *chip)
 	}
 
 	/* votes must be cast before configuring software control */
+
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
+	/* Keep all protocol requests within the board's existing DT budget.
+	 * An oversized vote otherwise fails the register write and can leave
+	 * the USB input suspended after a source change.
+	 */
+	if (chip->dt.usb_icl_ua > 0) {
+		rc = vote(chg->usb_icl_votable, BOARD_ICL_VOTER, true,
+			min(chip->dt.usb_icl_ua, chg->param.usb_icl.max_u));
+		if (rc < 0)
+			return rc;
+	}
+#endif
+
 	/* vote 0mA on usb_icl for non battery platforms */
 	vote(chg->usb_icl_votable,
 		DEFAULT_VOTER, chip->dt.no_battery, 0);

@@ -1,6 +1,6 @@
 {
   "baseline": "1e1c11baf6e4470207eb40f7dde8c449b94b942c",
-  "purpose": "Retain Wayne vendor policy; repair charging interfaces and isolate/clear legacy QC2 protocol votes without altering user suspend or current limits.",
+  "purpose": "Retain Wayne vendor policy; enforce existing DT input budget, isolate legacy votes, and prevent invalid SMB1351 cached targets or hidden suspend failures.",
   "source_sha256": {
     "drivers/power/supply/qcom/Kconfig": "90fb053c9b525ca1067acc8ab2406ff107fbfc04b21da8d8b736252c3844762a",
     "drivers/power/supply/qcom/battery.c": "cd5e085d3219b99b90be90f40d3787207c8f52919b1fd3e97925b3ff8993bb19",
@@ -8,9 +8,9 @@
     "drivers/power/supply/qcom/fg-reg.h": "697cea891a821b0ecb3b7913a2795af9c0e8bcd9092e853db4c778bb5d8fbd7d",
     "drivers/power/supply/qcom/fg-util.c": "ba9468366cb3e7f0b9c05947488edfe8372c800e6fac6d427358c5d4b87a9ca6",
     "drivers/power/supply/qcom/qpnp-fg-gen3.c": "03f81d0bb8d62e2d22bdef898e5bb5c93b73e2606adfd0a391a4f8dabf90933f",
-    "drivers/power/supply/qcom/qpnp-smb2.c": "40406de397592a3bdbcf4f3f7397867c4fb137d74b234643ca7a7ff2e5889f37",
+    "drivers/power/supply/qcom/qpnp-smb2.c": "74e9a7ab936def1026c8321b3bae9fa5a464c54f0a25e78d211ef895133c133d",
     "drivers/power/supply/qcom/smb-lib.c": "97f97c70ec34809687e13b0147db1e9586f9ef8428918177704597d893f65759",
-    "drivers/power/supply/qcom/smb-lib.h": "3e158cc285e69c11489380cab2b8669355427f56bbdc02f543760d6d7cb7c477",
+    "drivers/power/supply/qcom/smb-lib.h": "d4c0d96fcdf8dcb512458287023db84a1c22045c58f8318b7e054448aa932bb7",
     "drivers/power/supply/qcom/smb-reg.h": "839f5c4019f8e5f2874fa0c945896ffad04eed493cc5da589ac20eddd0118c4d",
     "drivers/power/supply/qcom/smb1351-charger.c": "fab4289aadf9adb52e85da3b50f0cc65354af54e40def6e7c4ecd2ca3916461f",
     "drivers/power/supply/qcom/step-chg-jeita.c": "e204c5b8f8f74c463351c6836e5e304b749bd343e270cc970ed0cc3e3977583a"
