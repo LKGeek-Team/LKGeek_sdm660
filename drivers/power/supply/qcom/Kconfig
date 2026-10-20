@@ -1,5 +1,21 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+config QCOM_LONGCHEER_CHARGER_POLICY
+	bool "Longcheer vendor charging policy"
+	depends on MACH_LONGCHEER
+	default n if MACH_XIAOMI_WAYNE
+	default y
+	help
+	  Enable the Longcheer charging and fuel gauge policy independently
+	  of the board's touch, camera and other hardware adaptations.
+	  Wayne uses the generic Qualcomm policy, as in its known working
+	  kernel. Electrical limits and battery profiles remain in DT.
+
+config QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
+	bool
+	depends on QCOM_LONGCHEER_CHARGER_POLICY && MACH_XIAOMI_WAYNE
+	default y
+
 menu "Qualcomm Technologies, Inc. Charger and Fuel Gauge support"
 
 config QPNP_SMB2

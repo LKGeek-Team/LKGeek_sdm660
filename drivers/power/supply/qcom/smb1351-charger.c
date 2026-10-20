@@ -602,25 +602,24 @@ static int smb1351_enable_volatile_writes(struct smb1351_charger *chip)
 	return rc;
 }
 
-static int smb1351_get_closest_usb_setpoint(int val)
+/* Select a supported limit without exceeding the caller's current budget. */
+static int smb1351_get_usb_current_limit(int current_ma)
 {
 	int i;
+	int limit = 0;
 
-	for (i = ARRAY_SIZE(usb_chg_current) - 1; i >= 0; i--) {
-		if (usb_chg_current[i] <= val)
+	if (current_ma >= USB2_MIN_CURRENT_MA)
+		limit = USB2_MIN_CURRENT_MA;
+	if (current_ma >= USB3_MIN_CURRENT_MA)
+		limit = USB3_MIN_CURRENT_MA;
+	if (current_ma >= USB3_MAX_CURRENT_MA)
+		limit = USB3_MAX_CURRENT_MA;
+	for (i = 0; i < ARRAY_SIZE(usb_chg_current); i++) {
+		if (usb_chg_current[i] > current_ma)
 			break;
+		limit = max(limit, usb_chg_current[i]);
 	}
-	if (i < 0)
-		i = 0;
-
-	if (i >= ARRAY_SIZE(usb_chg_current) - 1)
-		return ARRAY_SIZE(usb_chg_current) - 1;
-
-	/* check what is closer, i or i + 1 */
-	if (abs(usb_chg_current[i] - val) < abs(usb_chg_current[i + 1] - val))
-		return i;
-	else
-		return i + 1;
+	return limit;
 }
 
 static int smb1351_request_dpdm(struct smb1351_charger *chip, bool enable)
@@ -1290,11 +1289,11 @@ static int smb1351_set_usb_chg_current(struct smb1351_charger *chip,
 		return 0;
 	}
 
-	/* set suspend bit when urrent_ma <= 2 */
+	/* Set suspend bit when current_ma <= 2. */
 	if (current_ma <= SUSPEND_CURRENT_MA) {
-		smb1351_usb_suspend(chip, CURRENT, true);
+		rc = smb1351_usb_suspend(chip, CURRENT, true);
 		pr_debug("USB suspend\n");
-		return 0;
+		return rc;
 	}
 
 	if (current_ma > SUSPEND_CURRENT_MA &&
@@ -1341,7 +1340,7 @@ static int smb1351_set_usb_chg_current(struct smb1351_charger *chip,
 	}
 
 	/* unset the suspend bit here */
-	smb1351_usb_suspend(chip, CURRENT, false);
+	rc = smb1351_usb_suspend(chip, CURRENT, false);
 
 	return rc;
 }
@@ -1716,7 +1715,7 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 				       enum power_supply_property prop,
 				       const union power_supply_propval *val)
 {
-	int rc = 0, index, current_ma;
+	int rc = 0, current_ma;
 	struct smb1351_charger *chip = power_supply_get_drvdata(psy);
 
 	switch (prop) {
@@ -1739,16 +1738,13 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 					chip->target_fastchg_current_max_ma);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		current_ma = val->intval / 1000;
-		if (current_ma > SUSPEND_CURRENT_MA) {
-			index = smb1351_get_closest_usb_setpoint(current_ma);
-			chip->usb_psy_ma = usb_chg_current[index];
-		} else {
-			chip->usb_psy_ma = current_ma;
-		}
+		if (val->intval < 0)
+			return -EINVAL;
+		current_ma = smb1351_get_usb_current_limit(val->intval / 1000);
 		if (!chip->parallel_charger_suspended)
-			rc = smb1351_set_usb_chg_current(chip,
-						chip->usb_psy_ma);
+			rc = smb1351_set_usb_chg_current(chip, current_ma);
+		if (!rc)
+			chip->usb_psy_ma = current_ma;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		chip->vfloat_mv = val->intval / 1000;
@@ -1790,7 +1786,7 @@ static int smb1351_parallel_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		if (!chip->parallel_charger_suspended)
-			val->intval = chip->vfloat_mv;
+			val->intval = chip->vfloat_mv * 1000;
 		else
 			val->intval = 0;
 		break;
@@ -2945,7 +2941,7 @@ fail_smb1351_regulator_init:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 bool is_global_version;
 
 static int __init hwc_setup(char *s)
@@ -2965,8 +2961,8 @@ static int smb1351_parallel_charger_probe(struct i2c_client *client,
 	struct device_node *node = client->dev.of_node;
 	struct power_supply_config parallel_psy_cfg = {};
 
-#ifdef CONFIG_MACH_LONGCHEER
-	if (is_global_version && !IS_ENABLED(CONFIG_MACH_XIAOMI_WAYNE) &&
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
+	if (is_global_version && !IS_ENABLED(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) &&
 	    !IS_ENABLED(CONFIG_MACH_XIAOMI_LAVENDER)) {
 		pr_info("Global version doesn't have smb1351 regulator, killing probe\n");
 		return -ENODEV;
@@ -3155,7 +3151,7 @@ static struct i2c_driver smb1351_charger_driver = {
 	.id_table	= smb1351_charger_id,
 };
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 static int __init smb1351_charger_init(void)
 {
 	struct power_supply *pl_psy = power_supply_get_by_name("parallel");

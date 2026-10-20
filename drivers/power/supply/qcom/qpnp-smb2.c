@@ -20,7 +20,7 @@
 #include "smb-lib.h"
 #include "storm-watch.h"
 #include <linux/pmic-voter.h>
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #include <linux/notifier.h>
 #include <linux/fb.h>
 
@@ -42,7 +42,7 @@ union power_supply_propval lct_therm_india_level = {1,};
 extern bool is_global_version;
 bool lct_backlight_off;
 int LctIsInCall = 0;
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 int LctIsInVideo = 0;
 #endif
 int LctThermal = 0;
@@ -454,7 +454,7 @@ static enum power_supply_property smb2_usb_props[] = {
 	POWER_SUPPLY_PROP_PD_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_PD_VOLTAGE_MIN,
 	POWER_SUPPLY_PROP_SDP_CURRENT_MAX,
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	POWER_SUPPLY_PROP_RERUN_APSD,
 #endif
 	POWER_SUPPLY_PROP_CONNECTOR_TYPE,
@@ -587,7 +587,7 @@ static int smb2_usb_get_prop(struct power_supply *psy,
 		val->intval = get_client_vote(chg->disable_power_role_switch,
 					      MOISTURE_VOTER);
 		break;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_RERUN_APSD:
 		val->intval = chg->float_rerun_apsd;
 		break;
@@ -665,7 +665,7 @@ static int smb2_usb_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_SDP_CURRENT_MAX:
 		rc = smblib_set_prop_sdp_current_max(chg, val);
 		break;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_RERUN_APSD:
 		rc = smblib_set_prop_rerun_apsd(chg, val);
 		break;
@@ -1092,7 +1092,7 @@ static enum power_supply_property smb2_batt_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_QNOVO,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 #endif
 	POWER_SUPPLY_PROP_TEMP,
@@ -1108,7 +1108,7 @@ static enum power_supply_property smb2_batt_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	POWER_SUPPLY_PROP_CHARGING_ENABLED,
 #endif
 	POWER_SUPPLY_PROP_CHARGE_FULL,
@@ -1127,7 +1127,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	union power_supply_propval pval = {0, };
 
 	switch (psp) {
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 		val->intval = chg->charging_enabled;
 		break;
@@ -1197,14 +1197,14 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		val->intval = get_client_vote(chg->fcc_votable,
 					      BATT_PROFILE_VOTER);
 		break;
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		val->intval = get_client_vote(chg->fcc_votable,
 					      FG_ESR_VOTER);
 		break;
 #endif
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LIPO;
 #else
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
@@ -1230,7 +1230,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_DP_DM:
 		val->intval = chg->pulse_cnt;
 		break;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		rc = smblib_get_prop_battery_full_design(chg, val);
 		break;
@@ -1240,7 +1240,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 #endif
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
@@ -1278,7 +1278,7 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	struct smb_charger *chg = power_supply_get_drvdata(psy);
 
 	switch (prop) {
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 		rc = lct_set_prop_input_suspend(chg, val);
 		break;
@@ -1335,7 +1335,7 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 		chg->batt_profile_fcc_ua = val->intval;
 		vote(chg->fcc_votable, BATT_PROFILE_VOTER, true, val->intval);
 		break;
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		if (val->intval)
 			vote(chg->fcc_votable, FG_ESR_VOTER, true, val->intval);
@@ -1383,7 +1383,7 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_PARALLEL_DISABLE:
 	case POWER_SUPPLY_PROP_DP_DM:
 	case POWER_SUPPLY_PROP_RERUN_AICL:
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 #endif
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
@@ -1787,7 +1787,7 @@ static int smb2_init_hw(struct smb2 *chip)
 	vote(chg->pd_disallowed_votable_indirect, PD_NOT_SUPPORTED_VOTER,
 			chip->dt.no_pd, 0);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	/* Operate the QC2.0 in 5V/9V mode i.e. Disable 12V */
 	rc = smblib_masked_write(chg, HVDCP_PULSE_COUNT_MAX_REG,
 						PULSE_COUNT_QC2P0_12V | PULSE_COUNT_QC2P0_9V,
@@ -1993,7 +1993,7 @@ static int smb2_init_hw(struct smb2 *chip)
 		return rc;
 	}
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	rc = vote(chg->chg_disable_votable, DEFAULT_VOTER, true, 0);
 #endif
 
@@ -2025,7 +2025,7 @@ static int smb2_init_hw(struct smb2 *chip)
 		break;
 	}
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	rc = vote(chg->chg_disable_votable, DEFAULT_VOTER, false, 0);
 #endif
 
@@ -2566,8 +2566,8 @@ static void smb2_create_debugfs(struct smb2 *chip)
 
 #endif
 
-#ifdef CONFIG_MACH_LONGCHEER
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 static ssize_t lct_thermal_video_status_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -2616,7 +2616,7 @@ static ssize_t lct_thermal_call_status_store(struct device *dev,
 static struct device_attribute attrs2[] = {
 	__ATTR(thermalcall, S_IRUGO | S_IWUSR,
 			lct_thermal_call_status_show, lct_thermal_call_status_store),
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 	__ATTR(thermalvideo, S_IRUGO | S_IWUSR,
 			lct_thermal_video_status_show, lct_thermal_video_status_store),
 #endif
@@ -2647,7 +2647,7 @@ static void thermal_fb_notifier_resume_work(struct work_struct *work)
 	} else if (LctIsInCall)
 #elif defined(CONFIG_MACH_XIAOMI_TULIP)
 	if (LctIsInCall)
-#elif defined(CONFIG_MACH_XIAOMI_WAYNE) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
+#elif defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
 	if (lct_backlight_off && !LctIsInCall) {
 		if (lct_therm_lvl_reserved.intval >= 2)
 			smblib_set_prop_system_temp_level(chg,
@@ -2713,7 +2713,7 @@ static int smb2_probe(struct platform_device *pdev)
 	int rc = 0;
 	union power_supply_propval val;
 	int usb_present, batt_present, batt_health, batt_charge_type;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	unsigned char attr_count2;
 #endif
 
@@ -2827,7 +2827,7 @@ static int smb2_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	for (attr_count2 = 0; attr_count2 < ARRAY_SIZE(attrs2); attr_count2++) {
 		rc = sysfs_create_file(&chg->dev->kobj,
 				&attrs2[attr_count2].attr);
@@ -2894,7 +2894,7 @@ static int smb2_probe(struct platform_device *pdev)
 
 	device_init_wakeup(chg->dev, true);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	lct_therm_lvl_reserved.intval = 0;
 	lct_therm_level.intval = 0;
 	lct_backlight_off = false;
@@ -2936,7 +2936,7 @@ static int smb2_remove(struct platform_device *pdev)
 {
 	struct smb2 *chip = platform_get_drvdata(pdev);
 	struct smb_charger *chg = &chip->chg;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	unsigned char attr_count2;
 
 	for (attr_count2 = 0; attr_count2 < ARRAY_SIZE(attrs2); attr_count2++) {

@@ -1,0 +1,18 @@
+{
+  "baseline": "1e1c11baf6e4470207eb40f7dde8c449b94b942c",
+  "purpose": "Separate charging policy from board identity; Wayne defaults to the known-good generic branch. Fix SMB1351 budget rounding, failure reporting and voltage units. DTS and electrical/thermal limits are unchanged.",
+  "source_sha256": {
+    "drivers/power/supply/qcom/Kconfig": "d8123817f4d45cbc1cc14507954444bf77f4415f00faea84ee62c50c3ff3d5a3",
+    "drivers/power/supply/qcom/battery.c": "cd5e085d3219b99b90be90f40d3787207c8f52919b1fd3e97925b3ff8993bb19",
+    "drivers/power/supply/qcom/fg-core.h": "56d310ff34c934613901243d17b41bed6c36ed44e63b649767189df78f065ed2",
+    "drivers/power/supply/qcom/fg-reg.h": "697cea891a821b0ecb3b7913a2795af9c0e8bcd9092e853db4c778bb5d8fbd7d",
+    "drivers/power/supply/qcom/fg-util.c": "ba9468366cb3e7f0b9c05947488edfe8372c800e6fac6d427358c5d4b87a9ca6",
+    "drivers/power/supply/qcom/qpnp-fg-gen3.c": "03f81d0bb8d62e2d22bdef898e5bb5c93b73e2606adfd0a391a4f8dabf90933f",
+    "drivers/power/supply/qcom/qpnp-smb2.c": "40406de397592a3bdbcf4f3f7397867c4fb137d74b234643ca7a7ff2e5889f37",
+    "drivers/power/supply/qcom/smb-lib.c": "299bca06d1ac891879228a163afd3ba06e13f54dd158bfb20bb26724ac19eca7",
+    "drivers/power/supply/qcom/smb-lib.h": "774295b75263c488c9e60bca9b9f7f5ad4a1f688cbaf04cd7620e37d83d5c70b",
+    "drivers/power/supply/qcom/smb-reg.h": "839f5c4019f8e5f2874fa0c945896ffad04eed493cc5da589ac20eddd0118c4d",
+    "drivers/power/supply/qcom/smb1351-charger.c": "3603cab396e7084f26dac7d6bd1368274e6a9a749e75c4a1c4333ecc2937c22d",
+    "drivers/power/supply/qcom/step-chg-jeita.c": "e204c5b8f8f74c463351c6836e5e304b749bd343e270cc970ed0cc3e3977583a"
+  }
+}

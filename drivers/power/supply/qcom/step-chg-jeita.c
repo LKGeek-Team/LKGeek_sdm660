@@ -609,7 +609,7 @@ update_time:
 }
 
 #define JEITA_SUSPEND_HYST_UV		50000
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 extern bool is_global_version;
 extern union power_supply_propval lct_therm_lvl_reserved;
 extern int LctIsInVideo;
@@ -620,11 +620,11 @@ static int handle_jeita(struct step_chg_info *chip)
 	union power_supply_propval pval = {0, };
 	int rc = 0, fcc_ua = 0, fv_uv = 0;
 	u64 elapsed_us;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	int temp = 1;
 #endif
 
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 	if (!is_global_version) {
 		pr_debug("lct video LctIsInVideo=%d, lct_therm_lvl_reserved=%d\n",
 				LctIsInVideo, lct_therm_lvl_reserved.intval);
@@ -672,7 +672,7 @@ static int handle_jeita(struct step_chg_info *chip)
 		pr_err("Couldn't read %s property rc=%d\n",
 				chip->jeita_fcc_config->param.prop_name, rc);
 		return rc;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	} else {
 		temp = pval.intval;
 #endif
@@ -906,14 +906,14 @@ int qcom_step_chg_init(struct device *dev,
 
 	chip->jeita_fcc_config->param.psy_prop = POWER_SUPPLY_PROP_TEMP;
 	chip->jeita_fcc_config->param.prop_name = "BATT_TEMP";
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	chip->jeita_fcc_config->param.hysteresis = 0;
 #else
 	chip->jeita_fcc_config->param.hysteresis = 10;
 #endif
 	chip->jeita_fv_config->param.psy_prop = POWER_SUPPLY_PROP_TEMP;
 	chip->jeita_fv_config->param.prop_name = "BATT_TEMP";
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	chip->jeita_fv_config->param.hysteresis = 0;
 #else
 	chip->jeita_fv_config->param.hysteresis = 10;

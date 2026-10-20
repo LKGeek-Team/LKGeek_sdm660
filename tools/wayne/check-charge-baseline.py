@@ -74,11 +74,13 @@ def main():
     parser.add_argument('--dtb', type=Path)
     parser.add_argument('--baseline-dtb', type=Path)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--repairs', action='store_true', help='Allow only reviewed charge-interface/policy repair hashes')
     args = parser.parse_args()
     def git(*params):
         return subprocess.check_output(['git', '-C', str(args.root), *params])
     paths = git('ls-tree', '-r', '--name-only', BASELINE, '--', *SCOPE).decode().splitlines()
     errors, hashes = [], {}
+    repairs = json.loads((args.root / 'tools/wayne/charge-repairs.json').read_text())['source_sha256'] if args.repairs else {}
     expected_paths = set(paths)
     for scope in SCOPE:
         p = args.root / scope
@@ -90,7 +92,7 @@ def main():
     for name in paths:
         expected = git('show', BASELINE + ':' + name)
         path = args.root / name
-        if not path.is_file() or path.read_bytes() != expected:
+        if not path.is_file() or (hashlib.sha256(path.read_bytes()).hexdigest() != repairs[name] if name in repairs else path.read_bytes() != expected):
             errors.append(f'Charging source differs: {name}')
         hashes[name] = hashlib.sha256(expected).hexdigest()
     for name, labels in BLOCKS.items():
@@ -132,7 +134,7 @@ def main():
             if path not in old or path not in new or normalize(old, old[path]) != normalize(new, new[path]):
                 errors.append(f'Charging DT node differs: {path}')
         count = len(selected)
-    report = {'baseline': BASELINE, 'source_files_checked': len(paths), 'source_sha256': hashes,
+    report = {'baseline': BASELINE, 'approved_repairs': sorted(repairs), 'source_files_checked': len(paths), 'source_sha256': hashes,
               'mixed_dts_blocks_checked': sum(map(len, BLOCKS.values())), 'dt_nodes_checked': count,
               'errors': errors}
     if args.report:

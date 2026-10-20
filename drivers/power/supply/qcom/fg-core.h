@@ -76,7 +76,7 @@
 #define FG_PARALLEL_EN_VOTER	"fg_parallel_en"
 #define MEM_ATTN_IRQ_VOTER	"fg_mem_attn_irq"
 
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define DEBUG_BOARD_VOTER	"fg_debug_board"
 #endif
 
@@ -87,7 +87,7 @@
 
 #define FULL_CAPACITY			100
 #define FULL_SOC_RAW			255
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 #define FULL_SOC_REPORT_THR		250
 #endif
 
@@ -479,7 +479,7 @@ struct fg_dev {
 	int			last_msoc;
 	int			last_recharge_volt_mv;
 	int			delta_temp_irq_count;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	int			battery_full_design;
 #endif
 	enum esr_filter_status	esr_flt_sts;
@@ -488,7 +488,7 @@ struct fg_dev {
 	bool			battery_missing;
 	bool			fg_restarting;
 	bool			charge_full;
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 	bool			report_full;
 #endif
 	bool			recharge_soc_adjusted;

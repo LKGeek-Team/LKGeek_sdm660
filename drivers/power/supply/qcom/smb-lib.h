@@ -64,7 +64,7 @@ enum print_reason {
 #define MOISTURE_VOTER			"MOISTURE_VOTER"
 #define HVDCP2_ICL_VOTER		"HVDCP2_ICL_VOTER"
 #define OV_VOTER			"OV_VOTER"
-#ifndef CONFIG_MACH_LONGCHEER
+#ifndef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define FG_ESR_VOTER			"FG_ESR_VOTER"
 #endif
 #define FCC_STEPPER_VOTER		"FCC_STEPPER_VOTER"
@@ -265,7 +265,7 @@ struct smb_charger {
 	struct power_supply		*usb_main_psy;
 	struct power_supply		*usb_port_psy;
 	enum power_supply_type		real_charger_type;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	struct power_supply		*pl_psy;
 #endif
 
@@ -329,7 +329,7 @@ struct smb_charger {
 	int			fake_capacity;
 	int			fake_batt_status;
 	bool			step_chg_enabled;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	int			charging_enabled;
 #endif
 	bool			sw_jeita_enabled;
@@ -361,7 +361,7 @@ struct smb_charger {
 	bool			in_chg_lock;
 	bool			fcc_stepper_enable;
 	bool			ufp_only_mode;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	struct notifier_block notifier;
 	struct work_struct fb_notify_work;
 #endif
@@ -370,7 +370,7 @@ struct smb_charger {
 	u32			wa_flags;
 	bool			cc2_detach_wa_active;
 	bool			typec_en_dis_active;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	bool			float_rerun_apsd;
 #endif
 	bool			try_sink_active;
@@ -464,7 +464,7 @@ int smblib_get_prop_input_current_limited(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_set_prop_input_suspend(struct smb_charger *chg,
 				const union power_supply_propval *val);
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 int lct_set_prop_input_suspend(struct smb_charger *chg,
 				const union power_supply_propval *val);
 #endif
@@ -570,7 +570,7 @@ int smblib_stat_sw_override_cfg(struct smb_charger *chg, bool override);
 void smblib_usb_typec_change(struct smb_charger *chg);
 int smblib_toggle_stat(struct smb_charger *chg, int reset);
 int smblib_force_ufp(struct smb_charger *chg);
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 int smblib_get_prop_battery_full_design(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_set_prop_rerun_apsd(struct smb_charger *chg,

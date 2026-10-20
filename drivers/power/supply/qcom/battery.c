@@ -3,7 +3,7 @@
  * Copyright (c) 2017-2020 The Linux Foundation. All rights reserved.
  */
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define pr_fmt(fmt) "lct QCOM-BATT: %s: " fmt, __func__
 #else
 #define pr_fmt(fmt) "QCOM-BATT: %s: " fmt, __func__
@@ -849,7 +849,7 @@ skip_fcc_step_update:
 }
 
 #define MINIMUM_PARALLEL_FCC_UA		500000
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define PL_TAPER_WORK_DELAY_MS		100
 #else
 #define PL_TAPER_WORK_DELAY_MS		500
@@ -1238,7 +1238,7 @@ static bool is_batt_available(struct pl_data *chip)
 	return true;
 }
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 100000
 #else
 #define PARALLEL_FLOAT_VOLTAGE_DELTA_UV 50000
@@ -1305,7 +1305,7 @@ static int pl_fv_vote_callback(struct votable *votable, void *data,
 
 #define ICL_STEP_UA	25000
 #define PL_DELAY_MS     3000
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #define ICL_MAX_UA	1300000
 #else
 #define ICL_MAX_UA	1400000

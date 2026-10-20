@@ -715,8 +715,8 @@ static inline bool is_sec_access(struct fg_dev *fg, int addr)
 	if (fg->version != GEN3_FG)
 		return false;
 
-#ifdef CONFIG_MACH_LONGCHEER
-#if defined(CONFIG_MACH_XIAOMI_TULIP) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
+#if defined(CONFIG_MACH_XIAOMI_TULIP) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 	return ((addr & 0x00FF) > 0xBA);
 #else
 	return ((addr & 0x00FF) > 0xD0);
@@ -919,7 +919,7 @@ int fg_get_msoc(struct fg_dev *fg, int *msoc)
 	 */
 	if (*msoc == FULL_SOC_RAW)
 		*msoc = 100;
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 	else if ((*msoc >= FULL_SOC_REPORT_THR - 2)
 			&& (*msoc < FULL_SOC_RAW) && fg->report_full) {
 		*msoc = DIV_ROUND_CLOSEST(*msoc * FULL_CAPACITY, FULL_SOC_RAW) + 1;

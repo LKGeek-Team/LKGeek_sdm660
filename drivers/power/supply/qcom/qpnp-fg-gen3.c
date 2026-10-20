@@ -15,7 +15,7 @@
 #include <linux/iio/consumer.h>
 #include <linux/qpnp/qpnp-revid.h>
 #include <linux/qpnp/qpnp-misc.h>
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #include <linux/thermal.h>
 #endif
 #include "fg-core.h"
@@ -622,7 +622,7 @@ static int fg_get_battery_temp(struct fg_dev *fg, int *val)
 		(buf[0] & BATT_TEMP_LSB_MASK);
 	/* Value is in 0.25Kelvin; Convert it to deciDegC */
 	*val = DIV_ROUND_CLOSEST((temp - 273*4) * 10, 4);
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 #ifdef CONFIG_MACH_XIAOMI_TULIP
 	if (temp < -40) {
 		switch (temp) {
@@ -934,7 +934,7 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 		return -ENODATA;
 	}
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	rc = of_property_read_u32(profile_node, "qcom,battery-full-design", &fg->battery_full_design);
 	if (rc < 0) {
 		pr_err("No profile data available\n");
@@ -1936,7 +1936,7 @@ static int fg_adjust_recharge_voltage(struct fg_dev *fg)
 	recharge_volt_mv = chip->dt.recharge_volt_thr_mv;
 
 	/* Lower the recharge voltage in soft JEITA */
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	if (fg->health == POWER_SUPPLY_HEALTH_WARM)
 		recharge_volt_mv = 4050;
 #if defined(CONFIG_MACH_XIAOMI_WHYRED)
@@ -2694,7 +2694,7 @@ static void status_change_work(struct work_struct *work)
 			struct fg_dev, status_change_work);
 	union power_supply_propval prop = {0, };
 	int rc, batt_temp;
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 	int msoc;
 #endif
 
@@ -2739,7 +2739,7 @@ static void status_change_work(struct work_struct *work)
 	fg_cycle_counter_update(fg);
 	fg_cap_learning_update(fg);
 
-#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#if defined(CONFIG_MACH_XIAOMI_LAVENDER) || defined(CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY)
 	if (fg->charge_done && !fg->report_full)
 		fg->report_full = true;
 	else if (!fg->charge_done && fg->report_full) {
@@ -3806,7 +3806,7 @@ static int fg_psy_get_property(struct power_supply *psy,
 			return rc;
 		}
 		break;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	case POWER_SUPPLY_PROP_ONLINE:
 		pval->intval = fg->online_status;
 		break;
@@ -4304,7 +4304,7 @@ static int fg_hw_init(struct fg_dev *fg)
 	if (chip->dt.delta_soc_thr > 0 && chip->dt.delta_soc_thr < 100) {
 		fg_encode(fg->sp, FG_SRAM_DELTA_MSOC_THR,
 			chip->dt.delta_soc_thr, buf);
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
+#ifdef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 		buf[0] = 0x8;
 #endif
 		rc = fg_sram_write(fg,
@@ -4542,7 +4542,7 @@ static int fg_hw_init(struct fg_dev *fg)
 		}
 	}
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	buf[0] = 0x33;
 	buf[1] = 0x3;
 	rc = fg_sram_write(fg, 4, 0, buf, 2, FG_IMA_DEFAULT);
@@ -4553,7 +4553,7 @@ static int fg_hw_init(struct fg_dev *fg)
 	return 0;
 }
 
-#ifndef CONFIG_MACH_XIAOMI_WAYNE
+#ifndef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 static int fg_adjust_timebase(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -4701,7 +4701,7 @@ static irqreturn_t fg_delta_batt_temp_irq_handler(int irq, void *data)
 	fg->health = prop.intval;
 
 	if (fg->last_batt_temp != batt_temp) {
-#ifndef CONFIG_MACH_XIAOMI_WAYNE
+#ifndef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 		rc = fg_adjust_timebase(fg);
 		if (rc < 0)
 			pr_err("Error in adjusting timebase, rc=%d\n", rc);
@@ -4757,7 +4757,7 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	struct fg_dev *fg = data;
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
 	int rc;
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	struct thermal_zone_device *quiet_them;
 	int msoc, volt_uv, batt_temp, ibatt_now,temp_qt ;
 	bool input_present;
@@ -4784,7 +4784,7 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	rc = fg_esr_validate(fg);
 	if (rc < 0)
 		pr_err("Error in validating ESR, rc=%d\n", rc);
-#ifndef CONFIG_MACH_XIAOMI_WAYNE
+#ifndef CONFIG_QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 	rc = fg_adjust_timebase(fg);
 	if (rc < 0)
 		pr_err("Error in adjusting timebase, rc=%d\n", rc);
@@ -4792,7 +4792,7 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	if (batt_psy_initialized(fg))
 		power_supply_changed(fg->batt_psy);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 	input_present = is_input_present(fg);
 	quiet_them = thermal_zone_get_zone_by_name("quiet_therm");
 	rc = fg_get_battery_voltage(fg, &volt_uv);
@@ -5231,7 +5231,7 @@ static int fg_parse_dt(struct fg_gen3_chip *chip)
 	if (rc < 0)
 		chip->dt.sys_term_curr_ma = DEFAULT_SYS_TERM_CURR_MA;
 	else
-#ifdef CONFIG_MACH_LONGCHEER
+#ifdef CONFIG_QCOM_LONGCHEER_CHARGER_POLICY
 		chip->dt.sys_term_curr_ma = -temp;
 #else
 		chip->dt.sys_term_curr_ma = temp;
