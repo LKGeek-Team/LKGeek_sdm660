@@ -99,7 +99,10 @@ def main():
         expected = git('show', BASELINE + ':' + name).decode()
         actual = (args.root / name).read_text()
         for label in labels:
-            if block(expected, label) != block(actual, label):
+            expected_block = block(expected, label)
+            if args.repairs and name == WAYNE + "wayne-common-base.dtsi" and label == "&pm660_charger":
+                expected_block = expected_block.replace("{", "{qcom,battery-data=<&mtp_batterydata>;", 1)
+            if expected_block != block(actual, label):
                 errors.append(f'Charging DTS block differs: {name} {label}')
     count = None
     if bool(args.dtb) != bool(args.baseline_dtb):
@@ -131,7 +134,21 @@ def main():
             return {k: value(k, v) for k, v in properties.items()
                     if k not in ('phandle', 'linux,phandle')}
         for path in sorted(selected):
-            if path not in old or path not in new or normalize(old, old[path]) != normalize(new, new[path]):
+            old_props = dict(old.get(path, {}))
+            if args.repairs and path.endswith("/qcom,qpnp-smb2"):
+                # Permit only the link to the same battery data used by the FG.
+                fg = [v for p, v in new.items() if "qcom,battery-data" in v and
+                      ("fg" in p or "fuel-gauge" in p)]
+                if len(fg) == 1 and "qcom,battery-data" not in old_props:
+                    old_props["qcom,battery-data"] = fg[0]["qcom,battery-data"]
+                    # Compare the added phandle in the new tree namespace below.
+                    normalized_old = normalize(old, old.get(path, {}))
+                    normalized_old["qcom,battery-data"] = normalize(new, {"qcom,battery-data": fg[0]["qcom,battery-data"]})["qcom,battery-data"]
+                else:
+                    normalized_old = normalize(old, old_props)
+            else:
+                normalized_old = normalize(old, old_props)
+            if path not in old or path not in new or normalized_old != normalize(new, new[path]):
                 errors.append(f'Charging DT node differs: {path}')
         count = len(selected)
     report = {'baseline': BASELINE, 'approved_repairs': sorted(repairs), 'source_files_checked': len(paths), 'source_sha256': hashes,
