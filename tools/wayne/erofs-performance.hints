@@ -1,0 +1,6 @@
+# First match wins. Sizes are physical clusters in bytes.
+# Bound random page-fault work without expanding every hot library to plain data.
+4096 ^system/lib64/(libhwui|libandroid_runtime|libgui|libui|libbinder|libandroidfw|libcutils|libutils)\.so$
+# Bound random-read amplification in core Java code and interactive system apps.
+16384 ^(system|system_ext)/framework/.*\.(jar|oat|odex|vdex|art)$
+16384 ^system_ext/priv-app/(OplusLauncher|SystemUI|Settings)/.*\.(apk|oat|odex|vdex|art)$
