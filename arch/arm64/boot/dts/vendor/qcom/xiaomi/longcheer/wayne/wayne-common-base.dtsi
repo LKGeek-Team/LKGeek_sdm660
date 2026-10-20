@@ -34,8 +34,6 @@
 };
 
 &pm660_charger {
-	/* Load the existing battery profile for software JEITA. */
-	qcom,battery-data = <&mtp_batterydata>;
 	qcom,usb-icl-ua = <2900000>;
 	qcom,otg-cl-ua = <1500000>;
 	qcom,dc-icl-ua = <2900000>;
