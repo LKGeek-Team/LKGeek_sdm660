@@ -24,9 +24,9 @@ application-startup or frame-rate measurements. Full-system size, complete
 metadata comparison and on-device performance still need checking at the next
 image build. Do not claim a specific phone performance gain from this sample.
 
-`lkgeek-ui-dexopt.sh` and `lkgeek_ui_dexopt.rc` optionally go in `/system/bin` and
-`/system/etc/init`, with root:root ownership, 0755/0644 permissions and system_file
-labels. They upgrade Launcher and Settings to ART's speed filter at background
-priority. They do not force recompilation, touch app data or modify thermal/CPU
-limits. Once compiled, subsequent boots only check the filter. Initial selective
-compilation can take several minutes; it runs after boot without blocking init.
+The former post-boot Launcher/Settings dexopt service is withdrawn. Device logs
+showed sustained Launcher compilation overlapping startup, CPU contention and
+multi-second SystemUI delays. `lkgeek_ui_dexopt.rc` contains no service or boot
+trigger; `lkgeek-ui-dexopt.sh` is an inert compatibility stub for already-installed
+init entries. Leave compilation to Android ART's normal scheduling. No thermal
+limits, app data or existing compiled artifacts are changed by this removal.

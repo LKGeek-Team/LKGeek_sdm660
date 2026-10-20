@@ -1,11 +1,2 @@
-# No resident tuner: ART skips apps whose compiled code is already up to date.
-service lkgeek_ui_dexopt /system/bin/sh /system/bin/lkgeek-ui-dexopt.sh
-    user shell
-    group shell log readproc
-    seclabel u:r:shell:s0
-    priority 10
-    disabled
-    oneshot
-
-on property:sys.boot_completed=1
-    start lkgeek_ui_dexopt
+# Removed: custom post-boot dexopt competed with foreground startup.
+# Android ART manages compilation using its own scheduled jobs.
