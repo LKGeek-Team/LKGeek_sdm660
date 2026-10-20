@@ -24,9 +24,9 @@ application-startup or frame-rate measurements. Full-system size, complete
 metadata comparison and on-device performance still need checking at the next
 image build. Do not claim a specific phone performance gain from this sample.
 
-The former post-boot Launcher/Settings dexopt service is withdrawn. Device logs
-showed sustained Launcher compilation overlapping startup, CPU contention and
-multi-second SystemUI delays. `lkgeek_ui_dexopt.rc` contains no service or boot
-trigger; `lkgeek-ui-dexopt.sh` is an inert compatibility stub for already-installed
-init entries. Leave compilation to Android ART's normal scheduling. No thermal
-limits, app data or existing compiled artifacts are changed by this removal.
+The former post-boot Launcher/Settings dexopt service is removed from ROM source.
+Device logs showed sustained Launcher compilation overlapping startup, CPU
+contention and multi-second SystemUI delays. Neither the helper nor its init RC
+may be included in new images; the system image builder rejects either legacy
+file. Leave compilation to Android ART's normal scheduling. Existing app data,
+compiled artifacts and thermal controls are unchanged.

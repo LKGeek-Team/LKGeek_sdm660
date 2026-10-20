@@ -17,6 +17,15 @@ test ! -e "$output" || { echo "Refusing to overwrite $output" >&2; exit 1; }
 args=(-z lz4hc,level=12 -E legacy-compress --workers=2)
 case "$part" in
     system)
+        # Reject obsolete boot-time compilation even when reusing an old tree.
+        system_tree="$source_root"
+        if [ -d "$source_root/system" ]; then system_tree="$source_root/system"; fi
+        for removed in bin/lkgeek-ui-dexopt.sh etc/init/lkgeek_ui_dexopt.rc; do
+            if [ -e "$system_tree/$removed" ] || [ -L "$system_tree/$removed" ]; then
+                echo "Remove obsolete boot dexopt file before building: $system_tree/$removed" >&2
+                exit 1
+            fi
+        done
         args+=(-C 32768 --max-extent-bytes=65536
                --compress-hints="$script_dir/erofs-performance.hints")
         ;;

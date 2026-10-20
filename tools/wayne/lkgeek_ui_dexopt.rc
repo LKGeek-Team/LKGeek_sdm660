@@ -1,2 +1,0 @@
-# Removed: custom post-boot dexopt competed with foreground startup.
-# Android ART manages compilation using its own scheduled jobs.
