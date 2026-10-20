@@ -63,19 +63,12 @@ static const char * const power_supply_charge_type_text[] = {
 };
 
 static const char * const power_supply_health_text[] = {
-	[POWER_SUPPLY_HEALTH_UNKNOWN] = "Unknown",
-	[POWER_SUPPLY_HEALTH_GOOD] = "Good",
-	[POWER_SUPPLY_HEALTH_OVERHEAT] = "Overheat",
-	[POWER_SUPPLY_HEALTH_DEAD] = "Dead",
-	[POWER_SUPPLY_HEALTH_OVERVOLTAGE] = "Over voltage",
-	[POWER_SUPPLY_HEALTH_UNSPEC_FAILURE] = "Unspecified failure",
-	[POWER_SUPPLY_HEALTH_COLD] = "Cold",
-	[POWER_SUPPLY_HEALTH_WATCHDOG_TIMER_EXPIRE] = "Watchdog timer expire",
-	[POWER_SUPPLY_HEALTH_SAFETY_TIMER_EXPIRE] = "Safety timer expire",
-	[POWER_SUPPLY_HEALTH_OVERCURRENT] = "Over current",
-	[POWER_SUPPLY_HEALTH_WARM] = "Warm",
-	[POWER_SUPPLY_HEALTH_COOL] = "Cool",
-	[POWER_SUPPLY_HEALTH_HOT] = "Hot",
+	"Unknown", "Good", "Overheat", "Dead", "Over voltage",
+	"Unspecified failure", "Cold", "Watchdog timer expire",
+#ifdef CONFIG_MACH_LONGCHEER
+		"Low_Cool",
+#endif
+	"Safety timer expire", "Over current", "Warm", "Cool", "Hot"
 };
 
 static const char * const power_supply_technology_text[] = {
@@ -440,6 +433,9 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(pd_voltage_min),
 	POWER_SUPPLY_ATTR(sdp_current_max),
 	POWER_SUPPLY_ATTR(fg_reset_clock),
+#ifdef CONFIG_MACH_LONGCHEER
+	POWER_SUPPLY_ATTR(rerun_apsd),
+#endif
 	POWER_SUPPLY_ATTR(connector_type),
 	POWER_SUPPLY_ATTR(parallel_batfet_mode),
 	POWER_SUPPLY_ATTR(parallel_fcc_max),
@@ -495,9 +491,6 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(cc_toggle_enable),
 	POWER_SUPPLY_ATTR(fg_type),
 	POWER_SUPPLY_ATTR(charger_status),
-#ifdef CONFIG_MACH_LONGCHEER
-	POWER_SUPPLY_ATTR(rerun_apsd),
-#endif
 	/* Local extensions of type int64_t */
 	POWER_SUPPLY_ATTR(charge_counter_ext),
 	/* Properties of type `const char *' */

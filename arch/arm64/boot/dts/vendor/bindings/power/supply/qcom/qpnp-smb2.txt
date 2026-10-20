@@ -60,17 +60,6 @@ Charger specific properties:
   Definition: Specifies the USB input current limit in micro-amps.
 		 If the value is not present, 1.5Amps is used as default.
 
-- qcom,usb-icl-max-ua
-  Usage:      optional
-  Value type: <u32>
-  Definition: Board-wide ceiling for total USB input current in micro-amps,
-		including parallel charging. Unlike qcom,usb-icl-ua, this
-		limit remains active for QC and PD and across unplug cycles.
-		Lower USB protocol, thermal and battery limits still apply.
-		When absent, no additional ceiling is imposed. Choose this
-		value using the highest voltage supported by the board;
-		it is a current ceiling, not a dynamic power controller.
-
 - qcom,usb-ocl-ua
   Usage:      optional
   Value type: <u32>

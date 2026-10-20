@@ -412,7 +412,6 @@ struct usbpd {
 	bool			peer_dr_swap;
 	bool			no_usb3dp_concurrency;
 	bool			pd20_source_only;
-	bool			auto_select_sink_pdo;
 
 	u32			sink_caps[7];
 	int			num_sink_caps;
@@ -857,17 +856,12 @@ static int pd_select_pdo(struct usbpd *pd, int pdo_pos, int uv, int ua)
 	type = PD_SRC_PDO_TYPE(pdo);
 	if (type == PD_SRC_PDO_TYPE_FIXED) {
 		curr = max_current = PD_SRC_PDO_FIXED_MAX_CURR(pdo) * 10;
-		if (ua) {
-			if (ua < 10000)
-				return -EINVAL;
-			curr = max_current = min(curr, ua / 10000 * 10);
-		}
 
 		/*
 		 * Check if the PDO has enough current, otherwise set the
 		 * Capability Mismatch flag
 		 */
-		if (!ua && curr < PD_MIN_SINK_CURRENT) {
+		if (curr < PD_MIN_SINK_CURRENT) {
 			mismatch = true;
 			max_current = PD_MIN_SINK_CURRENT;
 		}
@@ -898,44 +892,6 @@ static int pd_select_pdo(struct usbpd *pd, int pdo_pos, int uv, int ua)
 	pd->requested_pdo = pdo_pos;
 
 	return 0;
-}
-
-/* Match only fixed voltages explicitly supported by both source and board. */
-static int pd_select_board_pdo(struct usbpd *pd)
-{
-	int i, j, selected = 0, selected_ua = 0;
-	int best_power = 0;
-
-	for (i = 0; i < PD_MAX_DATA_OBJ; i++) {
-		u32 src = pd->received_pdos[i];
-		int voltage, sink_current;
-
-		if (!src)
-			break;
-		if (PD_SRC_PDO_TYPE(src) != PD_SRC_PDO_TYPE_FIXED)
-			continue;
-		voltage = PD_SRC_PDO_FIXED_VOLTAGE(src);
-		for (j = 0; j < pd->num_sink_caps; j++) {
-			u32 sink = pd->sink_caps[j];
-
-			if (PD_SRC_PDO_TYPE(sink) != PD_SRC_PDO_TYPE_FIXED ||
-			    PD_SRC_PDO_FIXED_VOLTAGE(sink) != voltage)
-				continue;
-			sink_current = min(PD_SRC_PDO_FIXED_MAX_CURR(src),
-				      PD_SRC_PDO_FIXED_MAX_CURR(sink));
-			/* Units are 50mV and 10mA; products fit in an int. */
-			if (voltage * sink_current > best_power) {
-				best_power = voltage * sink_current;
-				selected = i + 1;
-				selected_ua = sink_current * 10000;
-			}
-		}
-	}
-
-	if (!selected)
-		return -EINVAL;
-
-	return pd_select_pdo(pd, selected, 0, selected_ua);
 }
 
 static int pd_eval_src_caps(struct usbpd *pd)
@@ -980,10 +936,7 @@ static int pd_eval_src_caps(struct usbpd *pd)
 	if (pd->peer_usb_comm && pd->current_dr == DR_UFP && !pd->pd_connected)
 		start_usb_peripheral(pd);
 
-	/* Keep the legacy vSafe5V policy unless the board opts in. */
-	if (pd->auto_select_sink_pdo && !pd_select_board_pdo(pd))
-		return 0;
-
+	/* Select the first PDO (vSafe5V) immediately. */
 	pd_select_pdo(pd, 1, 0, 0);
 
 	return 0;
@@ -4965,9 +4918,6 @@ struct usbpd *usbpd_create(struct device *parent)
 
 	if (device_property_read_bool(parent, "qcom,pd-20-source-only"))
 		pd->pd20_source_only = true;
-
-	pd->auto_select_sink_pdo = device_property_read_bool(parent,
-					"qcom,auto-select-sink-pdo");
 
 	/*
 	 * Register a Type-C class instance (/sys/class/typec/portX).

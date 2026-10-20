@@ -602,25 +602,25 @@ static int smb1351_enable_volatile_writes(struct smb1351_charger *chip)
 	return rc;
 }
 
-/* An input-current limit must never round above the allocated share. */
-static int smb1351_get_usb_setpoint(int current_ma)
+static int smb1351_get_closest_usb_setpoint(int val)
 {
-	int i, selected_ma = 0;
+	int i;
 
-	if (current_ma >= USB2_MIN_CURRENT_MA)
-		selected_ma = USB2_MIN_CURRENT_MA;
-	if (current_ma >= USB3_MIN_CURRENT_MA)
-		selected_ma = USB3_MIN_CURRENT_MA;
-	if (current_ma >= USB3_MAX_CURRENT_MA)
-		selected_ma = USB3_MAX_CURRENT_MA;
-
-	for (i = 0; i < ARRAY_SIZE(usb_chg_current); i++) {
-		if (usb_chg_current[i] > current_ma)
+	for (i = ARRAY_SIZE(usb_chg_current) - 1; i >= 0; i--) {
+		if (usb_chg_current[i] <= val)
 			break;
-		selected_ma = max(selected_ma, usb_chg_current[i]);
 	}
+	if (i < 0)
+		i = 0;
 
-	return selected_ma;
+	if (i >= ARRAY_SIZE(usb_chg_current) - 1)
+		return ARRAY_SIZE(usb_chg_current) - 1;
+
+	/* check what is closer, i or i + 1 */
+	if (abs(usb_chg_current[i] - val) < abs(usb_chg_current[i + 1] - val))
+		return i;
+	else
+		return i + 1;
 }
 
 static int smb1351_request_dpdm(struct smb1351_charger *chip, bool enable)
@@ -1730,7 +1730,7 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 				       enum power_supply_property prop,
 				       const union power_supply_propval *val)
 {
-	int rc = 0, current_ma, vfloat_mv;
+	int rc = 0, index;
 	struct smb1351_charger *chip = power_supply_get_drvdata(psy);
 
 	switch (prop) {
@@ -1753,20 +1753,16 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 					chip->target_fastchg_current_max_ma);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
-		current_ma = smb1351_get_usb_setpoint(val->intval / 1000);
+		index = smb1351_get_closest_usb_setpoint(val->intval / 1000);
+		chip->usb_psy_ma = usb_chg_current[index];
 		if (!chip->parallel_charger_suspended)
-			rc = smb1351_set_usb_chg_current(chip, current_ma);
-		if (!rc)
-			chip->usb_psy_ma = current_ma;
+			rc = smb1351_set_usb_chg_current(chip,
+						chip->usb_psy_ma);
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		vfloat_mv = val->intval / 1000;
-		if (vfloat_mv < MIN_FLOAT_MV || vfloat_mv > MAX_FLOAT_MV)
-			return -EINVAL;
+		chip->vfloat_mv = val->intval / 1000;
 		if (!chip->parallel_charger_suspended)
-			rc = smb1351_float_voltage_set(chip, vfloat_mv);
-		if (!rc)
-			chip->vfloat_mv = vfloat_mv;
+			rc = smb1351_float_voltage_set(chip, val->intval);
 		break;
 	default:
 		return -EINVAL;
@@ -1803,7 +1799,7 @@ static int smb1351_parallel_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		if (!chip->parallel_charger_suspended)
-			val->intval = chip->vfloat_mv * 1000;
+			val->intval = chip->vfloat_mv;
 		else
 			val->intval = 0;
 		break;

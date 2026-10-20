@@ -314,10 +314,6 @@ struct smb_charger {
 	struct work_struct	vconn_oc_work;
 	struct delayed_work	otg_ss_done_work;
 	struct delayed_work	icl_change_work;
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	struct delayed_work	aicl_recovery_work;
-	unsigned int		aicl_recovery_attempts;
-#endif
 	struct delayed_work	pl_enable_work;
 	struct work_struct	legacy_detection_work;
 	struct delayed_work	uusb_otg_work;

@@ -183,7 +183,6 @@ static struct smb_params pm660_params = {
 
 struct smb_dt_props {
 	int	usb_icl_ua;
-	int	usb_icl_max_ua;
 	int	dc_icl_ua;
 	int	boost_threshold_ua;
 	int	wipower_max_uw;
@@ -346,16 +345,6 @@ static int smb2_parse_dt(struct smb2 *chip)
 				"qcom,usb-icl-ua", &chip->dt.usb_icl_ua);
 	if (rc < 0)
 		chip->dt.usb_icl_ua = -EINVAL;
-
-	rc = of_property_read_u32(node, "qcom,usb-icl-max-ua",
-				  &chip->dt.usb_icl_max_ua);
-	if (rc < 0) {
-		chip->dt.usb_icl_max_ua = 0;
-	} else if (chip->dt.usb_icl_max_ua < chg->param.usb_icl.step_u ||
-		   chip->dt.usb_icl_max_ua > chg->param.usb_icl.max_u) {
-		dev_err(chg->dev, "Invalid maximum USB input current\n");
-		return -EINVAL;
-	}
 
 	rc = of_property_read_u32(node,
 				"qcom,otg-cl-ua", &chg->otg_cl_ua);
@@ -1161,7 +1150,6 @@ static enum power_supply_property smb2_batt_props[] = {
 	POWER_SUPPLY_PROP_DP_DM,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
-	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
@@ -1200,7 +1188,6 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CAPACITY:
 		rc = smblib_get_prop_batt_capacity(chg, val);
 		break;
-	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		rc = smblib_get_prop_system_temp_level(chg, val);
 		break;
@@ -1281,7 +1268,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_DP_DM:
 		val->intval = chg->pulse_cnt;
 		break;
-#if defined(CONFIG_MACH_LONGCHEER) && !defined(CONFIG_MACH_XIAOMI_WAYNE)
+#ifdef CONFIG_MACH_LONGCHEER
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		rc = smblib_get_prop_battery_full_design(chg, val);
 		break;
@@ -1291,7 +1278,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-#if !defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_WAYNE)
+#ifndef CONFIG_MACH_LONGCHEER
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 #endif
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
@@ -1338,7 +1325,6 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 		rc = smblib_set_prop_input_suspend(chg, val);
 		break;
-	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		rc = smblib_set_prop_system_temp_level(chg, val);
 		break;
@@ -1430,7 +1416,6 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_INPUT_SUSPEND:
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
-	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 	case POWER_SUPPLY_PROP_CAPACITY:
 	case POWER_SUPPLY_PROP_PARALLEL_DISABLE:
 	case POWER_SUPPLY_PROP_DP_DM:
@@ -1749,7 +1734,6 @@ static int smb2_init_hw(struct smb2 *chip)
 	struct smb_charger *chg = &chip->chg;
 	int rc;
 	u8 stat, val;
-	u8 aicl_mask, aicl_options = 0;
 
 	if (chip->dt.no_battery)
 		chg->fake_capacity = 50;
@@ -1818,12 +1802,6 @@ static int smb2_init_hw(struct smb2 *chip)
 	}
 
 	/* votes must be cast before configuring software control */
-	/* Keep the board ceiling across charger detection and unplug cycles. */
-	rc = vote(chg->usb_icl_votable, "BOARD_MAX",
-		  chip->dt.usb_icl_max_ua > 0, chip->dt.usb_icl_max_ua);
-	if (rc < 0)
-		return rc;
-
 	/* vote 0mA on usb_icl for non battery platforms */
 	vote(chg->usb_icl_votable,
 		DEFAULT_VOTER, chip->dt.no_battery, 0);
@@ -1854,15 +1832,7 @@ static int smb2_init_hw(struct smb2 *chip)
 			"Couldn't configure QC2.0 to 9V rc=%d\n", rc);
 		return rc;
 	}
-#if defined(CONFIG_MACH_XIAOMI_WAYNE)
-	/* PM660 supports up to 9V: (9000 - 5000) / 200 = 20 pulses. */
-	rc = smblib_masked_write(chg, HVDCP_PULSE_COUNT_MAX_REG,
-				PULSE_COUNT_QC3P0_MASK, 20);
-	if (rc < 0) {
-		dev_err(chg->dev, "Couldn't configure QC3.0 to 9V rc=%d\n", rc);
-		return rc;
-	}
-#elif defined(CONFIG_MACH_XIAOMI_WHYRED) || defined(CONFIG_MACH_XIAOMI_TULIP)
+#if defined(CONFIG_MACH_XIAOMI_WHYRED) || defined(CONFIG_MACH_XIAOMI_TULIP)
 	/* Operate the QC3.0 to limit vbus to 8.0v*/
 	rc = smblib_masked_write(chg, HVDCP_PULSE_COUNT_MAX_REG,
 						PULSE_COUNT_QC3P0_MASK, 0xf);
@@ -1896,14 +1866,9 @@ static int smb2_init_hw(struct smb2 *chip)
 	 * AICL configuration:
 	 * start from min and AICL ADC disable
 	 */
-	aicl_mask = USBIN_AICL_START_AT_MAX_BIT | USBIN_AICL_ADC_EN_BIT;
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	/* Retry safe current discovery after a transient input collapse. */
-	aicl_mask |= USBIN_AICL_RERUN_EN_BIT;
-	aicl_options = USBIN_AICL_RERUN_EN_BIT;
-#endif
 	rc = smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,
-			aicl_mask, aicl_options);
+			USBIN_AICL_START_AT_MAX_BIT
+				| USBIN_AICL_ADC_EN_BIT, 0);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure AICL rc=%d\n", rc);
 		return rc;

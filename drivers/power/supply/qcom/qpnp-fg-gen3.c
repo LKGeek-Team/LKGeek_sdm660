@@ -6,7 +6,6 @@
 
 #include <linux/debugfs.h>
 #include <linux/ktime.h>
-#include <linux/limits.h>
 #include <linux/of.h>
 #include <linux/spinlock.h>
 #include <linux/alarmtimer.h>
@@ -956,9 +955,6 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 		pr_err("No profile data available\n");
 		return -ENODATA;
 	}
-	if (fg->battery_full_design <= 0 ||
-	    fg->battery_full_design >= U16_MAX)
-		return -EINVAL;
 #endif
 
 	if (len != PROFILE_LEN) {
@@ -1085,20 +1081,14 @@ static int fg_prime_cc_soc_sw(struct fg_dev *fg, unsigned int cc_soc_sw)
 	return rc;
 }
 
-#define MAX_LEARNED_CAP_UAH	((U16_MAX - 1) * 1000)
-
 static int fg_save_learned_cap_to_sram(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
-	u16 cc_mah;
+	int16_t cc_mah;
 	int rc;
 
 	if (fg->battery_missing || !chip->cl.learned_cc_uah)
 		return -EPERM;
-	/* Capacity is stored in unsigned 16-bit mAh; 0xffff is uninitialized. */
-	if (chip->cl.learned_cc_uah < 1000 ||
-	    chip->cl.learned_cc_uah > MAX_LEARNED_CAP_UAH)
-		return -EINVAL;
 
 	cc_mah = div64_s64(chip->cl.learned_cc_uah, 1000);
 	/* Write to a backup register to use across reboot */
@@ -1140,7 +1130,7 @@ static int fg_load_learned_cap_from_sram(struct fg_dev *fg)
 	chip->cl.learned_cc_uah = act_cap_mah * 1000;
 
 	if (chip->cl.learned_cc_uah != chip->cl.nom_cap_uah) {
-		if (!chip->cl.learned_cc_uah || act_cap_mah == U16_MAX)
+		if (chip->cl.learned_cc_uah == 0)
 			chip->cl.learned_cc_uah = chip->cl.nom_cap_uah;
 
 		delta_cc_uah = abs(chip->cl.learned_cc_uah -
@@ -1148,12 +1138,11 @@ static int fg_load_learned_cap_from_sram(struct fg_dev *fg)
 		pct_nom_cap_uah = div64_s64((int64_t)chip->cl.nom_cap_uah *
 				CAPACITY_DELTA_DECIPCT, 1000);
 		/*
-		 * Keep the low-capacity corruption check. Larger replacement
-		 * packs must survive reboot when no upper learning limit is set.
+		 * If the learned capacity is out of range by 50% from the
+		 * nominal capacity, then overwrite the learned capacity with
+		 * the nominal capacity.
 		 */
-		if (chip->cl.nom_cap_uah && delta_cc_uah > pct_nom_cap_uah &&
-		    (chip->cl.learned_cc_uah < chip->cl.nom_cap_uah ||
-		     chip->dt.cl_max_cap_limit)) {
+		if (chip->cl.nom_cap_uah && delta_cc_uah > pct_nom_cap_uah) {
 			fg_dbg(fg, FG_CAP_LEARN, "learned_cc_uah: %lld is higher than expected, capping it to nominal: %lld\n",
 				chip->cl.learned_cc_uah, chip->cl.nom_cap_uah);
 			chip->cl.learned_cc_uah = chip->cl.nom_cap_uah;
@@ -3829,10 +3818,6 @@ static int fg_psy_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		pval->intval = chip->cl.nom_cap_uah;
-#ifdef CONFIG_MACH_LONGCHEER
-		if (fg->battery_full_design > 0)
-			pval->intval = fg->battery_full_design * 1000;
-#endif
 		break;
 	case POWER_SUPPLY_PROP_RESISTANCE_ID:
 		pval->intval = fg->batt_id_ohms;
@@ -4049,11 +4034,7 @@ static int fg_psy_set_property(struct power_supply *psy,
 			pr_warn("Capacity learning active!\n");
 			return 0;
 		}
-		if (pval->intval < 1000 ||
-		    pval->intval > MAX_LEARNED_CAP_UAH ||
-		    (chip->dt.cl_max_cap_limit &&
-		     pval->intval > div64_s64(chip->cl.nom_cap_uah *
-				(1000 + chip->dt.cl_max_cap_limit), 1000))) {
+		if (pval->intval <= 0 || pval->intval > chip->cl.nom_cap_uah) {
 			pr_err("charge_full is out of bounds\n");
 			return -EINVAL;
 		}

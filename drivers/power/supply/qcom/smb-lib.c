@@ -693,15 +693,6 @@ static const struct apsd_result *smblib_update_usb_type(struct smb_charger *chg)
 #endif
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	/* Keep QC within its 9V budget without restricting a 5V DCP to 1.65A. */
-	vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER,
-		!chg->pd_active &&
-		(chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP ||
-		 chg->real_charger_type == POWER_SUPPLY_TYPE_USB_HVDCP_3),
-		1650000);
-#endif
-
 	smblib_dbg(chg, PR_MISC, "APSD=%s PD=%d\n",
 					apsd_result->name, chg->pd_active);
 	return apsd_result;
@@ -1116,10 +1107,8 @@ int smblib_get_icl_current(struct smb_charger *chg, int *icl_ua)
 			return rc;
 		}
 		override = load_cfg & ICL_OVERRIDE_AFTER_APSD_BIT;
-		if (!override) {
-			*icl_ua = INT_MAX;
-			return 0;
-		}
+		if (!override)
+			return INT_MAX;
 
 		/* override is set */
 		rc = smblib_get_charge_param(chg, &chg->param.usb_icl, icl_ua);
@@ -1494,11 +1483,7 @@ static int smblib_hvdcp_hw_inov_dis_vote_callback(struct votable *votable,
 	int rc;
 
 #ifdef CONFIG_MACH_LONGCHEER
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	/* PD owns VBUS while its contract is active; do not run QC INOV. */
-	if (!chg->pd_active)
-#endif
-		disable = 0;
+	disable = 0;
 #endif
 	if (disable) {
 		/*
@@ -2425,21 +2410,6 @@ int smblib_rerun_aicl(struct smb_charger *chg)
 	if (stat & USBIN_SUSPEND_STS_BIT)
 		return rc;
 
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	/* Restart the protected hardware search from its configured minimum. */
-	rc = smblib_masked_write(chg, CMD_HVDCP_2_REG,
-				RESTART_AICL_BIT, RESTART_AICL_BIT);
-	if (rc < 0) {
-		smblib_err(chg, "Couldn't restart AICL rc=%d\n", rc);
-		return rc;
-	}
-	rc = smblib_masked_write(chg, CMD_HVDCP_2_REG,
-				TRIGGER_AICL_BIT, TRIGGER_AICL_BIT);
-	if (rc < 0)
-		smblib_err(chg, "Couldn't trigger AICL rc=%d\n", rc);
-	return rc;
-#endif
-
 	smblib_dbg(chg, PR_MISC, "re-running AICL\n");
 	rc = smblib_get_charge_param(chg, &chg->param.icl_stat,
 			&settled_icl_ua);
@@ -2497,9 +2467,7 @@ static int smblib_force_vbus_voltage(struct smb_charger *chg, u8 val)
 }
 
 #ifdef CONFIG_MACH_LONGCHEER
-#if defined(CONFIG_MACH_XIAOMI_WAYNE)
-#define MAX_PLUSE_COUNT_ALLOWED 20
-#elif defined(CONFIG_MACH_XIAOMI_WHYRED) || defined(CONFIG_MACH_XIAOMI_TULIP)
+#if defined(CONFIG_MACH_XIAOMI_WHYRED) || defined(CONFIG_MACH_XIAOMI_TULIP)
 #define MAX_PLUSE_COUNT_ALLOWED 15
 #else
 #define MAX_PLUSE_COUNT_ALLOWED 8
@@ -3279,15 +3247,6 @@ static int __smblib_set_prop_pd_active(struct smb_charger *chg, bool pd_active)
 	u8 stat;
 
 	chg->pd_active = pd_active;
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	rc = vote(chg->hvdcp_hw_inov_dis_votable, PD_VOTER, pd_active, 0);
-	if (rc < 0)
-		return rc;
-	/* The pre-PD Longcheer callback may have overridden the cached result. */
-	rc = rerun_election(chg->hvdcp_hw_inov_dis_votable);
-	if (rc < 0)
-		return rc;
-#endif
 	if (chg->pd_active) {
 		chg->real_charger_type = POWER_SUPPLY_TYPE_USB_PD;
 		vote(chg->apsd_disable_votable, PD_VOTER, true, 0);
@@ -4009,10 +3968,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 			return;
 		}
 
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-		schedule_delayed_work(&chg->aicl_recovery_work,
-					msecs_to_jiffies(20000));
-#endif
 		rc = smblib_request_dpdm(chg, true);
 		if (rc < 0)
 			smblib_err(chg, "Couldn't to enable DPDM rc=%d\n", rc);
@@ -4039,11 +3994,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 			chg->fake_usb_insertion = false;
 			return;
 		}
-
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-		cancel_delayed_work(&chg->aicl_recovery_work);
-		chg->aicl_recovery_attempts = 0;
-#endif
 
 		if (chg->wa_flags & BOOST_BACK_WA) {
 			data = chg->irq_info[SWITCH_POWER_OK_IRQ].irq_data;
@@ -4374,9 +4324,7 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 #ifdef CONFIG_MACH_LONGCHEER
 #if defined(CONFIG_MACH_XIAOMI_TULIP)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 2000000);
-#elif defined(CONFIG_MACH_XIAOMI_WAYNE)
-		vote(chg->usb_icl_votable, HVDCP2_ICL_VOTER, true, 1500000);
-#elif defined(CONFIG_MACH_XIAOMI_LAVENDER)
+#elif defined(CONFIG_MACH_XIAOMI_WAYNE) || defined(CONFIG_MACH_XIAOMI_LAVENDER)
 		vote(chg->usb_icl_votable, USER_VOTER, true, 1500000);
 #else
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 1500000);
@@ -4838,9 +4786,6 @@ static void smblib_handle_typec_removal(struct smb_charger *chg)
 	vote(chg->hvdcp_disable_votable_indirect, VBUS_CC_SHORT_VOTER, true, 0);
 	vote(chg->hvdcp_disable_votable_indirect, PD_INACTIVE_VOTER, true, 0);
 	vote(chg->hvdcp_hw_inov_dis_votable, OV_VOTER, false, 0);
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	vote(chg->hvdcp_hw_inov_dis_votable, PD_VOTER, false, 0);
-#endif
 
 	/* reset power delivery voters */
 	vote(chg->pd_allowed_votable, PD_VOTER, false, 0);
@@ -5604,39 +5549,6 @@ static void smblib_otg_ss_done_work(struct work_struct *work)
 	mutex_unlock(&chg->otg_oc_lock);
 }
 
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-/* Debounce detection/parallel transitions; at most three recoveries per cable. */
-static void smblib_aicl_recovery_work(struct work_struct *work)
-{
-	struct smb_charger *chg = container_of(work, struct smb_charger,
-						 aicl_recovery_work.work);
-	int rc, settled_ua;
-	u8 stat;
-
-	mutex_lock(&chg->lock);
-	if (chg->aicl_recovery_attempts >= 3 ||
-	    get_effective_result(chg->usb_icl_votable) < 500000)
-		goto out;
-	rc = smblib_read(chg, USBIN_BASE + INT_RT_STS_OFFSET, &stat);
-	if (rc < 0 || !(stat & USBIN_PLUGIN_RT_STS_BIT) ||
-	    (stat & (USBIN_UV_RT_STS_BIT | USBIN_OV_RT_STS_BIT)))
-		goto out;
-	rc = smblib_read(chg, TEMP_RANGE_STATUS_REG, &stat);
-	if (rc < 0 || (stat & (THERM_REG_ACTIVE_BIT | ALERT_LEVEL_BIT)))
-		goto out;
-	rc = smblib_get_charge_param(chg, &chg->param.icl_stat, &settled_ua);
-	if (rc < 0 || settled_ua > 100000)
-		goto out;
-
-	chg->aicl_recovery_attempts++;
-	rc = smblib_rerun_aicl(chg);
-	smblib_dbg(chg, PR_MISC, "AICL recovery attempt=%u rc=%d\n",
-			chg->aicl_recovery_attempts, rc);
-out:
-	mutex_unlock(&chg->lock);
-}
-#endif
-
 static void smblib_icl_change_work(struct work_struct *work)
 {
 	struct smb_charger *chg = container_of(work, struct smb_charger,
@@ -5648,12 +5560,6 @@ static void smblib_icl_change_work(struct work_struct *work)
 		smblib_err(chg, "Couldn't get ICL status rc=%d\n", rc);
 		return;
 	}
-
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	if (settled_ua <= 100000 && chg->aicl_recovery_attempts < 3)
-		schedule_delayed_work(&chg->aicl_recovery_work,
-					msecs_to_jiffies(20000));
-#endif
 
 	power_supply_changed(chg->usb_main_psy);
 
@@ -5942,9 +5848,6 @@ int smblib_init(struct smb_charger *chg)
 	INIT_WORK(&chg->vconn_oc_work, smblib_vconn_oc_work);
 	INIT_DELAYED_WORK(&chg->otg_ss_done_work, smblib_otg_ss_done_work);
 	INIT_DELAYED_WORK(&chg->icl_change_work, smblib_icl_change_work);
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-	INIT_DELAYED_WORK(&chg->aicl_recovery_work, smblib_aicl_recovery_work);
-#endif
 	INIT_DELAYED_WORK(&chg->pl_enable_work, smblib_pl_enable_work);
 	INIT_WORK(&chg->legacy_detection_work, smblib_legacy_detection_work);
 	INIT_DELAYED_WORK(&chg->uusb_otg_work, smblib_uusb_otg_work);
@@ -6018,9 +5921,6 @@ int smblib_deinit(struct smb_charger *chg)
 		cancel_work_sync(&chg->vconn_oc_work);
 		cancel_delayed_work_sync(&chg->otg_ss_done_work);
 		cancel_delayed_work_sync(&chg->icl_change_work);
-#ifdef CONFIG_MACH_XIAOMI_WAYNE
-		cancel_delayed_work_sync(&chg->aicl_recovery_work);
-#endif
 		cancel_delayed_work_sync(&chg->pl_enable_work);
 		cancel_work_sync(&chg->legacy_detection_work);
 		cancel_delayed_work_sync(&chg->uusb_otg_work);

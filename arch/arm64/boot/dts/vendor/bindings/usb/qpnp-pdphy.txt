@@ -44,11 +44,6 @@ Optional properties:
 			capabilities in voltage (millivolts) and current
 			(milliamps) pairs.
 - qcom,no-usb3-dp-concurrency: If present, usb3 and dp concurrency is not supported.
-- qcom,auto-select-sink-pdo: If present, automatically request the highest-power
-			fixed supply supported by both the source PDOs and the
-			board's default-sink-caps. The requested current is limited
-			to the lower of the two capabilities. Without this property,
-			the initial request remains vSafe5V for userspace selection.
 - qcom,pd-20-source-only: If present, only PD2.0 is supported as source.
 - qcom,pps-disabled:	If defined pps support will be disabled. Standard PD
 			communication will remain unaffected.
