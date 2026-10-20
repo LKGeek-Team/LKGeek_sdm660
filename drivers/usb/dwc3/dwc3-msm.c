@@ -367,7 +367,7 @@ struct dwc3_msm {
 	u64			dummy_gsi_db;
 	dma_addr_t		dummy_gsi_db_dma;
 	int			orientation_override;
-	bool			usb_data_enabled;
+	bool usb_data_enabled;
 };
 
 #define USB_HSPHY_3P3_VOL_MIN		3050000 /* uV */
@@ -501,8 +501,8 @@ static inline bool dwc3_msm_is_dev_superspeed(struct dwc3_msm *mdwc)
 	u8 speed;
 
 	speed = dwc3_msm_read_reg(mdwc->base, DWC3_DSTS) & DWC3_DSTS_CONNECTSPD;
-	if ((speed & DWC3_DSTS_SUPERSPEED) ||
-			(speed & DWC3_DSTS_SUPERSPEED_PLUS))
+	if ((speed == DWC3_DSTS_SUPERSPEED) ||
+			(speed == DWC3_DSTS_SUPERSPEED_PLUS))
 		return true;
 
 	return false;
@@ -2010,24 +2010,6 @@ static void dwc3_gsi_event_buf_alloc(struct dwc3 *dwc)
 	}
 }
 
-static void dwc3_msm_modify_pipectl(struct dwc3 *dwc, bool set)
-{
-	struct dwc3_msm *mdwc = dev_get_drvdata(dwc->dev->parent);
-	u32 reg;
-
-	reg = dwc3_msm_read_reg(mdwc->base, DWC3_GUSB3PIPECTL(0));
-
-	if (set) {
-		if ((dwc->speed != DWC3_DSTS_SUPERSPEED) &&
-			(dwc->speed != DWC3_DSTS_SUPERSPEED_PLUS))
-			reg |= DWC3_GUSB3PIPECTL_SUSPHY;
-	} else {
-		reg &= ~(DWC3_GUSB3PIPECTL_SUSPHY);
-	}
-
-	dwc3_msm_write_reg(mdwc->base, DWC3_GUSB3PIPECTL(0), reg);
-}
-
 static void dwc3_msm_notify_event(struct dwc3 *dwc, unsigned int event,
 							unsigned int value)
 {
@@ -2093,9 +2075,6 @@ static void dwc3_msm_notify_event(struct dwc3 *dwc, unsigned int event,
 		break;
 	case DWC3_CONTROLLER_CONNDONE_EVENT:
 		dev_dbg(mdwc->dev, "DWC3_CONTROLLER_CONNDONE_EVENT received\n");
-
-		dwc3_msm_modify_pipectl(dwc, true);
-
 		/*
 		 * Add power event if the dbm indicates coming out of L1 by
 		 * interrupt
@@ -2220,13 +2199,6 @@ static void dwc3_msm_notify_event(struct dwc3 *dwc, unsigned int event,
 		break;
 	case DWC3_CONTROLLER_NOTIFY_CLEAR_DB:
 		dev_dbg(mdwc->dev, "DWC3_CONTROLLER_NOTIFY_CLEAR_DB\n");
-
-		/*
-		 * Clear the susphy bit here to ensure it is not set during
-		 * the course of controller initialisation process.
-		 */
-		dwc3_msm_modify_pipectl(dwc, false);
-
 		if (!mdwc->gsi_ev_buff)
 			break;
 
@@ -2299,6 +2271,15 @@ static void dwc3_msm_power_collapse_por(struct dwc3_msm *mdwc)
 		dev_err(mdwc->dev, "%s: dwc3_core init failed (%d)\n",
 							__func__, ret);
 
+	/* Get initial P3 status and enable IN_P3 event */
+	if (dwc3_is_usb31(dwc))
+		val = dwc3_msm_read_reg_field(mdwc->base,
+			DWC31_LINK_GDBGLTSSM,
+			DWC3_GDBGLTSSM_LINKSTATE_MASK);
+	else
+		val = dwc3_msm_read_reg_field(mdwc->base,
+			DWC3_GDBGLTSSM, DWC3_GDBGLTSSM_LINKSTATE_MASK);
+	atomic_set(&mdwc->in_p3, val == DWC3_LINK_STATE_U3);
 	dwc3_msm_write_reg_field(mdwc->base, PWR_EVNT_IRQ_MASK_REG,
 				PWR_EVNT_POWERDOWN_IN_P3_MASK, 1);
 
@@ -2735,7 +2716,7 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc, bool enable_wakeup)
 	if (mdwc->lpm_flags & MDWC3_USE_PWR_EVENT_IRQ_FOR_WAKEUP)
 		enable_irq(mdwc->wakeup_irq[PWR_EVNT_IRQ].irq);
 
-	dev_info(mdwc->dev, "DWC3 in low power mode\n");
+	dev_dbg(mdwc->dev, "DWC3 in low power mode\n");
 	dbg_event(0xFF, "Ctl Sus", atomic_read(&dwc->in_lpm));
 
 	/* kick_sm if it is waiting for lpm sequence to finish */
@@ -4172,12 +4153,13 @@ static int dwc3_msm_remove(struct platform_device *pdev)
 	int ret_pm;
 
 	device_remove_file(&pdev->dev, &dev_attr_mode);
-	device_remove_file(&pdev->dev, &dev_attr_usb_data_enabled);
 
 	if (mdwc->dpdm_nb.notifier_call) {
 		regulator_unregister_notifier(mdwc->dpdm_reg, &mdwc->dpdm_nb);
 		mdwc->dpdm_nb.notifier_call = NULL;
 	}
+
+	device_remove_file(&pdev->dev, &dev_attr_usb_data_enabled);
 
 	if (mdwc->usb_psy)
 		power_supply_put(mdwc->usb_psy);
@@ -4360,7 +4342,8 @@ static int dwc3_otg_start_host(struct dwc3_msm *mdwc, int on)
 	if (!mdwc->vbus_reg) {
 		mdwc->vbus_reg = devm_regulator_get_optional(mdwc->dev,
 					"vbus_dwc3");
-		if (PTR_ERR(mdwc->vbus_reg) == -EPROBE_DEFER) {
+		if (IS_ERR(mdwc->vbus_reg) &&
+				PTR_ERR(mdwc->vbus_reg) == -EPROBE_DEFER) {
 			/* regulators may not be ready, so retry again later */
 			mdwc->vbus_reg = NULL;
 			return -EPROBE_DEFER;
@@ -4681,7 +4664,7 @@ static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned int mA)
 	pval.intval = 1000 * mA;
 
 set_prop:
-	dev_info(mdwc->dev, "Avail curr from USB = %u\n", mA);
+	dev_dbg(mdwc->dev, "Avail curr from USB = %u\n", mA);
 	ret = power_supply_set_property(mdwc->usb_psy,
 				POWER_SUPPLY_PROP_SDP_CURRENT_MAX, &pval);
 	if (ret) {
@@ -5015,6 +4998,7 @@ static struct platform_driver dwc3_msm_driver = {
 		.name	= "msm-dwc3",
 		.pm	= &dwc3_msm_dev_pm_ops,
 		.of_match_table	= of_dwc3_matach,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 

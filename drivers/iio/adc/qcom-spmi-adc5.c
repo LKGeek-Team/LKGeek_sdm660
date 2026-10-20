@@ -989,6 +989,8 @@ static const struct adc_channels adc_chans_rev2[ADC_MAX_CHANNEL] = {
 					SCALE_HW_CALIB_THERM_100K_PULLUP)
 	[ANA_IN]		= ADC_CHAN_TEMP("drax_temp", 1,
 					SCALE_HW_CALIB_PMIC_THERM)
+	[ADC_AMUX_THM4_PU2]	= ADC_CHAN_TEMP("backlight_therm", 1,
+					SCALE_HW_CALIB_THERM_100K_PULLUP)
 };
 
 static int adc_get_dt_channel_data(struct adc_chip *adc,
@@ -1264,7 +1266,9 @@ static int adc_probe(struct platform_device *pdev)
 	int ret, irq_eoc;
 	u32 reg;
 	bool skip_usb_wa = false;
+#ifdef CONFIG_IPC_LOGGING
 	char adc_name[40];
+#endif
 
 	regmap = dev_get_regmap(dev->parent, NULL);
 	if (!regmap)
@@ -1347,6 +1351,7 @@ static int adc_probe(struct platform_device *pdev)
 	indio_dev->channels = adc->iio_chans;
 	indio_dev->num_channels = adc->nchannels;
 
+#ifdef CONFIG_IPC_LOGGING
 	snprintf(adc_name, sizeof(adc_name), "vadc_%s_0",
 					node->parent->full_name);
 
@@ -1366,6 +1371,7 @@ static int adc_probe(struct platform_device *pdev)
 	if (!adc->ipc_log1)
 		pr_err("%s : unable to create IPC Logging 1 for %s ADC\n",
 					__func__, node->parent->full_name);
+#endif
 
 	return devm_iio_device_register(dev, indio_dev);
 }
