@@ -1,8 +1,8 @@
 {
   "baseline": "1e1c11baf6e4470207eb40f7dde8c449b94b942c",
-  "purpose": "Separate charging policy from board identity; Wayne defaults to the known-good generic branch. Fix SMB1351 budget rounding, failure reporting and voltage units. DTS and electrical/thermal limits are unchanged.",
+  "purpose": "Retain board charging policy; repair property alignment and SMB1351 interfaces. Generic charging policy was rejected after device regression.",
   "source_sha256": {
-    "drivers/power/supply/qcom/Kconfig": "d8123817f4d45cbc1cc14507954444bf77f4415f00faea84ee62c50c3ff3d5a3",
+    "drivers/power/supply/qcom/Kconfig": "90fb053c9b525ca1067acc8ab2406ff107fbfc04b21da8d8b736252c3844762a",
     "drivers/power/supply/qcom/battery.c": "cd5e085d3219b99b90be90f40d3787207c8f52919b1fd3e97925b3ff8993bb19",
     "drivers/power/supply/qcom/fg-core.h": "56d310ff34c934613901243d17b41bed6c36ed44e63b649767189df78f065ed2",
     "drivers/power/supply/qcom/fg-reg.h": "697cea891a821b0ecb3b7913a2795af9c0e8bcd9092e853db4c778bb5d8fbd7d",

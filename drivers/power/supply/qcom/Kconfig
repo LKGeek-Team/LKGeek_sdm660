@@ -3,13 +3,12 @@
 config QCOM_LONGCHEER_CHARGER_POLICY
 	bool "Longcheer vendor charging policy"
 	depends on MACH_LONGCHEER
-	default n if MACH_XIAOMI_WAYNE
 	default y
 	help
 	  Enable the Longcheer charging and fuel gauge policy independently
 	  of the board's touch, camera and other hardware adaptations.
-	  Wayne uses the generic Qualcomm policy, as in its known working
-	  kernel. Electrical limits and battery profiles remain in DT.
+	  Keep the board vendor policy enabled unless a replacement has been
+	  validated on hardware. Electrical limits and profiles remain in DT.
 
 config QCOM_LONGCHEER_WAYNE_CHARGER_POLICY
 	bool
