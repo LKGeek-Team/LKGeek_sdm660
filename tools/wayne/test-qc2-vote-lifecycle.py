@@ -16,6 +16,8 @@ removal=function('static void smblib_handle_typec_removal(')
 a=removal.index('/* reset input current limit voters */');b=removal.index('/* reset hvdcp voters */')
 reset=removal[a:b]
 assert 'USER_VOTER' not in legacy and 'USER_VOTER' not in reset
+uusb=function('static void smblib_uusb_removal(')
+assert 'vote(chg->usb_icl_votable, LEGACY_HVDCP_VOTER, false, 0);' in uusb
 voters=dict(re.findall(r'#define\s+(\w+_VOTER)\s+"([^"]+)"',h))
 prefix='''#include <assert.h>
 #include <stdbool.h>
