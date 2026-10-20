@@ -1,0 +1,10 @@
+# The panel exposes one display mode; keep the port's properties synchronized.
+service lkgeek_display_compat /system/bin/sh /system/bin/lkgeek-display-compat.sh
+    user shell
+    group shell log readproc
+    seclabel u:r:shell:s0
+    disabled
+    oneshot
+
+on property:sys.boot_completed=1
+    start lkgeek_display_compat
