@@ -1662,8 +1662,10 @@ static int smb1351_parallel_set_chg_suspend(struct smb1351_charger *chip,
 		chip->parallel_charger_suspended = false;
 	} else {
 		rc = smb1351_usb_suspend(chip, CURRENT, true);
-		if (rc)
+		if (rc) {
 			pr_debug("failed to suspend rc=%d\n", rc);
+			return rc;
+		}
 
 		chip->usb_psy_ma = SUSPEND_CURRENT_MA;
 		chip->parallel_charger_suspended = true;
@@ -1715,7 +1717,7 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 				       enum power_supply_property prop,
 				       const union power_supply_propval *val)
 {
-	int rc = 0, current_ma;
+	int rc = 0, current_ma, voltage_mv;
 	struct smb1351_charger *chip = power_supply_get_drvdata(psy);
 
 	switch (prop) {
@@ -1731,11 +1733,14 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 		rc = smb1351_parallel_set_chg_suspend(chip, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
-		chip->target_fastchg_current_max_ma =
-						val->intval / 1000;
+		current_ma = val->intval / 1000;
+		if (current_ma < SMB1351_CHG_PRE_MIN_MA ||
+		    current_ma > SMB1351_CHG_FAST_MAX_MA)
+			return -EINVAL;
 		if (!chip->parallel_charger_suspended)
-			rc = smb1351_fastchg_current_set(chip,
-					chip->target_fastchg_current_max_ma);
+			rc = smb1351_fastchg_current_set(chip, current_ma);
+		if (!rc)
+			chip->target_fastchg_current_max_ma = current_ma;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		if (val->intval < 0)
@@ -1747,9 +1752,13 @@ static int smb1351_parallel_set_property(struct power_supply *psy,
 			chip->usb_psy_ma = current_ma;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		chip->vfloat_mv = val->intval / 1000;
+		voltage_mv = val->intval / 1000;
+		if (voltage_mv < MIN_FLOAT_MV || voltage_mv > MAX_FLOAT_MV)
+			return -EINVAL;
 		if (!chip->parallel_charger_suspended)
-			rc = smb1351_float_voltage_set(chip, chip->vfloat_mv);
+			rc = smb1351_float_voltage_set(chip, voltage_mv);
+		if (!rc)
+			chip->vfloat_mv = voltage_mv;
 		break;
 	default:
 		return -EINVAL;
@@ -1793,7 +1802,8 @@ static int smb1351_parallel_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
 		val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
 		/* Check if SMB1351 is present */
-		if (smb1351_is_usb_present(chip)) {
+		if (!chip->parallel_charger_suspended &&
+		    smb1351_is_usb_present(chip)) {
 			val->intval = smb1351_get_prop_charge_type(chip);
 			if (val->intval == POWER_SUPPLY_CHARGE_TYPE_UNKNOWN) {
 				pr_debug("Failed to charge type, charger may be absent\n");

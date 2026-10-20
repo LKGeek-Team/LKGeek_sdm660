@@ -12,7 +12,7 @@
     "drivers/power/supply/qcom/smb-lib.c": "97f97c70ec34809687e13b0147db1e9586f9ef8428918177704597d893f65759",
     "drivers/power/supply/qcom/smb-lib.h": "3e158cc285e69c11489380cab2b8669355427f56bbdc02f543760d6d7cb7c477",
     "drivers/power/supply/qcom/smb-reg.h": "839f5c4019f8e5f2874fa0c945896ffad04eed493cc5da589ac20eddd0118c4d",
-    "drivers/power/supply/qcom/smb1351-charger.c": "3603cab396e7084f26dac7d6bd1368274e6a9a749e75c4a1c4333ecc2937c22d",
+    "drivers/power/supply/qcom/smb1351-charger.c": "fab4289aadf9adb52e85da3b50f0cc65354af54e40def6e7c4ecd2ca3916461f",
     "drivers/power/supply/qcom/step-chg-jeita.c": "e204c5b8f8f74c463351c6836e5e304b749bd343e270cc970ed0cc3e3977583a"
   }
 }

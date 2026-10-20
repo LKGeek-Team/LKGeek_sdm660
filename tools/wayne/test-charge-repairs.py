@@ -23,6 +23,10 @@ header = r'''
 #define USB3_MIN_CURRENT_MA 150
 #define USB3_MAX_CURRENT_MA 900
 #define EINVAL 22
+#define SMB1351_CHG_PRE_MIN_MA 100
+#define SMB1351_CHG_FAST_MAX_MA 4500
+#define MIN_FLOAT_MV 3500
+#define MAX_FLOAT_MV 4508
 static int usb_chg_current[] = {500,685,1000,1100,1200,1300,1500,1600,1700,1800,2000,2200,2500,3000};
 enum power_supply_property {POWER_SUPPLY_PROP_CHARGING_ENABLED, POWER_SUPPLY_PROP_INPUT_SUSPEND, POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, POWER_SUPPLY_PROP_CURRENT_MAX, POWER_SUPPLY_PROP_VOLTAGE_MAX};
 union power_supply_propval {int intval;};
@@ -52,6 +56,13 @@ int main(void) {
  int before=calls;v.intval=-1;assert(smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_CURRENT_MAX,&v)==-EINVAL);assert(calls==before);
  c.parallel_charger_suspended=true;v.intval=999999;
  assert(!smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_CURRENT_MAX,&v));assert(c.usb_psy_ma==900 && calls==before);
+ c.target_fastchg_current_max_ma=1200;c.vfloat_mv=4400;
+ v.intval=5100000;assert(smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,&v)==-EINVAL);assert(c.target_fastchg_current_max_ma==1200);
+ v.intval=0;assert(smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_VOLTAGE_MAX,&v)==-EINVAL);assert(c.vfloat_mv==4400);
+ v.intval=1300000;assert(!smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,&v));assert(c.target_fastchg_current_max_ma==1300);
+ c.parallel_charger_suspended=false;io_error=-5;v.intval=1500000;
+ assert(smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,&v)==-5);assert(c.target_fastchg_current_max_ma==1300);
+ v.intval=4300000;assert(smb1351_parallel_set_property(&p,POWER_SUPPLY_PROP_VOLTAGE_MAX,&v)==-5);assert(c.vfloat_mv==4400);
  return 0;
 }
 '''
@@ -61,4 +72,4 @@ with tempfile.TemporaryDirectory() as tmp:
     subprocess.run(['cc','-std=c99','-fsanitize=undefined,address','-g',str(p/'test.c'),'-o',str(p/'test')],check=True)
     subprocess.run([str(p/'test')],check=True)
 subprocess.run(['python3',str(r/'tools/wayne/check-power-supply-properties.py')],check=True)
-print('PASS: 40,146 current budgets, zero, subminimum, negative, I/O failure and suspended caching; both property layouts')
+print('PASS: 40,146 current budgets, zero, subminimum, negative, I/O failure and suspended caching; both property layouts; invalid FCC/FV cache and I/O failure preservation')
