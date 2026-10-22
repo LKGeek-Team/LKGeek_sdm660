@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remote name="scarlet-wayne" fetch="https://github.com/" />
+  <extend-project name="LineageOS-wayne/android_device_xiaomi_wayne"
+                  revision="e8f24a6736237fa8afde2986cf08e32717f9f508" />
+  <extend-project name="LineageOS-wayne/android_vendor_xiaomi_wayne"
+                  revision="8a2b1eab1f9e1f12f58eb525a7458863b09172dc" />
+  <extend-project name="LineageOS-wayne/android_frameworks_base"
+                  revision="8cbeb8b652c2605643ee278f161f5bc19f83ea5c" />
+  <extend-project name="LineageOS-wayne/android_system_core"
+                  revision="3142e167b64ff0c9504df8a754974e4410f56fef" />
+  <extend-project name="LineageOS-wayne/android_hardware_qcom-caf_common"
+                  revision="82de4d4852d5890ba98a420635787582886cac15" />
+  <extend-project name="LineageOS-wayne/android_hardware_qcom_audio"
+                  revision="f687790214ada97802abd7ca963b265a155f2262" />
+  <extend-project name="LineageOS-wayne/android_hardware_qcom_display"
+                  revision="7b056f6602350188e6e11e181fb4d85f1f817a12" />
+  <extend-project name="LineageOS-wayne/android_hardware_qcom_media"
+                  revision="c3df928dcbb011871ba1718b4cd225bc9a91b547" />
+  <extend-project name="LineageOS-wayne/android_vendor_qcom_opensource_display-commonsys-intf"
+                  revision="d339f8c970420bff34382b53087a6f8af24a1dc9" />
+  <extend-project name="LineageOS-wayne/android_vendor_qcom_opensource_display-commonsys"
+                  revision="b5175d9685df3964b682c2034b102ec6f8f515dc" />
+  <remove-project name="LineageOS-wayne/android_kernel_xiaomi_wayne" />
+  <project name="ciallo-0d00721/scarlet_sdm660" path="kernel/xiaomi/wayne"
+           remote="scarlet-wayne" revision="3316cb3851478cb1d63cf79b40eea6dc1df8bee4" />
+</manifest>

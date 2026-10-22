@@ -1,0 +1,9 @@
+{
+  "sha256": "1f076f4cdce36775628eed3201d2d27f299f15bb3989113af124fe775b54775d",
+  "bytes": 45359,
+  "nodes": 343,
+  "board_checks_passed": 6,
+  "kernel_compiled": false,
+  "boot_tested": false,
+  "schema_validated": false
+}

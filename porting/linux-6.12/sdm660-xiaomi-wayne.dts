@@ -1,0 +1,135 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Experimental Xiaomi Mi 6X bring-up, based on the Wayne downstream board data.
+ * This does not yet describe display, touch, USB, charging, radio or camera.
+ * Board IDs and physical addresses below come from scarlet_sdm660 3316cb385147.
+ */
+
+/dts-v1/;
+
+#include "sdm660.dtsi"
+#include "pm660.dtsi"
+#include "pm660l.dtsi"
+
+/ {
+	model = "Xiaomi Mi 6X (experimental mainline bring-up)";
+	compatible = "xiaomi,wayne", "qcom,sdm660";
+	chassis-type = "handset";
+
+	/* Legacy Qualcomm bootloader DT selection, copied from the vendor tree. */
+	qcom,msm-id = <317 0>;
+	qcom,board-id = <0x020008 0>, <0x50008 0>;
+	qcom,pmic-id = <0x0001001b 0x0101011a 0 0>,
+		       <0x0001001b 0x0201011a 0 0>,
+		       <0x0001001b 0x0102001a 0 0>;
+
+	aliases {
+		serial0 = &blsp1_uart2;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	vph_pwr: regulator-vph-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "vph_pwr";
+		regulator-min-microvolt = <3700000>;
+		regulator-max-microvolt = <3700000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	reserved-memory {
+		/* Preserve the bootloader's display buffer without assuming its format. */
+		framebuffer@9d400000 {
+			reg = <0 0x9d400000 0 0x23ff000>;
+			no-map;
+		};
+
+		/* Match the downstream persistent-log region for recovery collection. */
+		ramoops@a0000000 {
+			compatible = "ramoops";
+			reg = <0 0xa0000000 0 0x00400000>;
+			console-size = <0x200000>;
+			pmsg-size = <0x200000>;
+			max-reason = <4>;
+		};
+	};
+};
+
+/* Upstream SDM630 reserves 1 MiB here; Wayne's CDSP carveout is 6 MiB. */
+&buffer_mem {
+	reg = <0 0x94a00000 0 0x600000>;
+};
+
+&blsp1_uart2 {
+	status = "okay";
+};
+
+&pon_pwrkey {
+	status = "okay";
+};
+
+&pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&rpm_requests {
+	regulators-0 {
+		compatible = "qcom,rpm-pm660l-regulators";
+		vdd_bob-supply = <&vph_pwr>;
+		vdd_l4_l6-supply = <&vreg_bob>;
+
+		vreg_bob: bob {
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3600000>;
+			regulator-boot-on;
+		};
+
+		vreg_l4b: l4 {
+			regulator-min-microvolt = <2944000>;
+			regulator-max-microvolt = <2952000>;
+			regulator-allow-set-load;
+			regulator-system-load = <570000>;
+		};
+	};
+
+	regulators-1 {
+		compatible = "qcom,rpm-pm660-regulators";
+		vdd_s4-supply = <&vph_pwr>;
+		vdd_l8_l9_l10_l11_l12_l13_l14-supply = <&vreg_s4a>;
+
+		vreg_s4a: s4 {
+			regulator-min-microvolt = <1805000>;
+			regulator-max-microvolt = <2040000>;
+			regulator-always-on;
+		};
+
+		vreg_l8a: l8 {
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-allow-set-load;
+			regulator-system-load = <325000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+
+		/* Keep the LPDDR4 rail enabled, as in the upstream SDM660 board. */
+		l13 {
+			regulator-min-microvolt = <1780000>;
+			regulator-max-microvolt = <1950000>;
+			regulator-boot-on;
+			regulator-always-on;
+		};
+	};
+};
+
+&sdhc_1 {
+	vmmc-supply = <&vreg_l4b>;
+	vqmmc-supply = <&vreg_l8a>;
+	/* Begin with HS200; enable HS400/CQE only after board validation. */
+	mmc-hs200-1_8v;
+	status = "okay";
+};
