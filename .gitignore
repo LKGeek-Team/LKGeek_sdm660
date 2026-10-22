@@ -10,6 +10,9 @@
 # Normal rules (sorted alphabetically)
 #
 .*
+!/.vscode/
+!/.vscode/tasks.json
+!/.vscode/extensions.json
 *.a
 *.asn1.[ch]
 *.bin
@@ -141,3 +144,22 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+# Build scripts
+/build-scripts
+
+# Build directories
+/out
+/work
+/wayne
+/tulip
+/lavender
+/whyred
+/CLANG
+/GCC
+
+# Build log
+log.txt
+
+# Wayne build tooling
+/tools/wayne/__pycache__/
+!/porting/vendor-4.19/*.patch

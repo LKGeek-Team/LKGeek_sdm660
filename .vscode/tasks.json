@@ -1,0 +1,80 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": {"WAYNE_WORK_ROOT": "${workspaceFolder}/.."}
+  },
+  "tasks": [
+    {
+      "label": "Wayne: setup Linux build environment",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/build.sh", "setup"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "setup"]},
+      "problemMatcher": []
+    },
+    {
+      "label": "Wayne: build 4.19 baseline",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/build.sh", "baseline"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "baseline"]},
+      "group": {"kind": "build", "isDefault": true},
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Wayne: open full source in WSL",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "open-linux"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Wayne: prepare 6.12 config",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/build.sh", "prepare-6.12"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "prepare-6.12"]},
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Wayne: compile experimental 6.12 DTB",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/build.sh", "dtbs-6.12"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "dtbs-6.12"]},
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Wayne: compile experimental 6.12 image",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/build.sh", "image-6.12"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "image-6.12"]},
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Wayne ROM: setup Android 14 build environment",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/rom.sh", "setup"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "rom-setup"]},
+      "problemMatcher": []
+    },
+    {
+      "label": "Wayne ROM: sync Android 14 sources",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/rom.sh", "sync"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "rom-sync"]},
+      "problemMatcher": []
+    },
+    {
+      "label": "Wayne ROM: build Android 14 baseline (4.19)",
+      "type": "process",
+      "command": "bash",
+      "args": ["${workspaceFolder}/tools/wayne/rom.sh", "build"],
+      "windows": {"command": "powershell.exe", "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/wayne/invoke-build.ps1", "-Mode", "rom-build"]},
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
